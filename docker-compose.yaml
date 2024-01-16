@@ -1,0 +1,47 @@
+version: '3'
+
+networks:
+  web-network:
+
+services:
+  docker-influxdb:
+    image: influxdb:2.4
+    container_name: influxdb
+    restart: always
+    ports:
+      - "8086:8086" #HTTP UI and API port
+    environment:
+      DOCKER_INFLUXDB_INIT_MODE: "setup"
+      DOCKER_INFLUXDB_INIT_USERNAME: "root" #创建管理员用户
+      DOCKER_INFLUXDB_INIT_PASSWORD: "a123456a" #创建管理员密码，太简单会报错
+      DOCKER_INFLUXDB_INIT_ORG: "miot-tracer" #组织名称
+      DOCKER_INFLUXDB_INIT_BUCKET: "node1"
+    volumes:
+      - "./influxdb/data:/var/lib/influxdb2"
+      - "./influxdb/config:/etc/influxdb2"
+    networks:
+      - web-network
+
+  miot-tracer-redis:
+    image: redis
+    command: redis-server /etc/redis/redis.conf --appendonly yes
+    ports:
+      - "6379:6379"
+    volumes:
+      - ./redis-data/redis.conf:/etc/redis/redis.conf
+      - ./redis-data/redis:/data
+    restart: always
+    networks:
+      - web-network
+  
+  redis-insight:
+    image: redislabs/redisinsight:latest
+    ports:
+      - "8001:8001"
+    restart: always
+    networks:
+      - web-network
+    environment:
+      - REDIS_URI=redis://miot-tracer-redis:6379
+    links:
+      - miot-tracer-redis
