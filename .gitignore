@@ -1,3 +1,5 @@
-./datas
-./influxdb
-./redis-data/redis
+datas
+influxdb
+redis-data/redis
+pkg/dataGateway/gatewayConfig.go
+logFile
