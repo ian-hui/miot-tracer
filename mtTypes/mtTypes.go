@@ -24,6 +24,34 @@ type Message struct {
 
 // 事件类型
 var (
-	UPLOAD_TAXI_DATA = "MIOT_UPLOAD_TAXI_DATA"
-	UPLOAD_INDEX     = "MIOT_UPLOAD_INDEX"
+	UPLOAD_TAXI_DATA = "MIOT_UPLOAD_TAXI_DATA" //上传出租车数据
+	UPLOAD_INDEX     = "MIOT_UPLOAD_INDEX"     //用于跳表索引
 )
+
+// metadata
+// ID ：starttime，endtime，segment，nextNode
+// 每个id做一个list
+type Metadata struct {
+	ID            string `json:"id"`
+	StartTs       string `json:"startts"`
+	EndTs         string `json:"endts"`
+	Segment       string `json:"segment"`
+	NextNode      string `json:"nextnode"`
+	NextMetaIndex string `json:"nextmetaindex"` //下一个metadata的在redislist的索引
+}
+
+// index
+// id : [timestamp,nodeid,segment]
+type Index struct {
+	ID        string `json:"id"`
+	Timestamp string `json:"timestamp"`
+	NodeID    string `json:"nodeid"`
+	Segment   string `json:"segment"`
+}
+
+type RedisConf struct {
+	Addr    string `json:"addr"`
+	Pwd     string `json:"pwd"`
+	DB      string `json:"db"`
+	Timeout string `json:"timeout"`
+}
