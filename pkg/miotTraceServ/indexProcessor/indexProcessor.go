@@ -12,23 +12,26 @@ import (
 
 var (
 	iotlog = logger.Miotlogger
+	redisC *redis.Client
 )
 
-type IndexProcessor interface {
-	createMetaData(mtdt *mttypes.Metadata) error
-	updateMetaData(mtdt *mttypes.Metadata) error
-	createIndex(index *mttypes.Index) error
-}
-
-type IndexProcessorImpl struct {
+type IndexProcessor struct {
 	c *redis.Client
 }
 
-func NewIndexProcessor(c *redis.Client) IndexProcessor {
-	return &IndexProcessorImpl{c}
+func NewIndexProcessor(c *redis.Client) *IndexProcessor {
+	if redisC == nil {
+		c := redis.NewClient(&redis.Options{
+			Addr:     mttypes.RedisConfig.Addr,
+			Password: mttypes.RedisConfig.Pwd,
+			DB:       0,
+		})
+		redisC = c
+	}
+	return &IndexProcessor{redisC}
 }
 
-func (i *IndexProcessorImpl) createMetaData(mtdt *mttypes.Metadata) error {
+func (i *IndexProcessor) createMetaData(mtdt *mttypes.Metadata) error {
 	value_json, err := json.Marshal(mtdt)
 	if err != nil {
 		iotlog.Errorln("json.Marshal failed, err:", err)
@@ -44,7 +47,7 @@ func (i *IndexProcessorImpl) createMetaData(mtdt *mttypes.Metadata) error {
 }
 
 // 有个问题是 如果移动终端到达一个新节点后立刻又掉头回到原本节点 那么节点的元数据的最后一个
-func (i *IndexProcessorImpl) updateMetaData(mtdt *mttypes.Metadata) error {
+func (i *IndexProcessor) updateMetaData(mtdt *mttypes.Metadata) error {
 	//从右边开始寻找
 	RedisListKey := fmt.Sprintf("%s%s:%s:%s", mttypes.Node_prefix, mttypes.NODE_ID, mttypes.Meta_prefix, mtdt.ID)
 	sc := i.c.RPop(RedisListKey)
@@ -81,7 +84,7 @@ func combineMetaData(metaBeforeCombination *mttypes.Metadata, mtdt *mttypes.Meta
 	return metaBeforeCombination
 }
 
-func (i *IndexProcessorImpl) createIndex(index *mttypes.Index) error {
+func (i *IndexProcessor) createIndex(index *mttypes.Index) error {
 	//序列化
 	value_json, err := json.Marshal(index)
 	if err != nil {

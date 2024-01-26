@@ -6,6 +6,11 @@ type TaxiData struct {
 	Longitude string
 	Latitude  string
 	Occupancy string
+	TaxiDataLabel
+}
+
+type TaxiDataLabel struct {
+	Segment string
 }
 
 type TaxiInfo struct {
@@ -54,4 +59,18 @@ type RedisConf struct {
 	Pwd     string `json:"pwd"`
 	DB      string `json:"db"`
 	Timeout string `json:"timeout"`
+}
+
+type InfluxConf struct {
+	Url    string `json:"url"`
+	Token  string `json:"token"`
+	Bucket string `json:"bucket"`
+	Org    string `json:"org"`
+}
+
+type QueryStru struct {
+	StartTime string `json:"starttime"`
+	EndTime   string `json:"endtime"`
+	Segment   string `json:"segment"`
+	ID        string `json:"id"`
 }
