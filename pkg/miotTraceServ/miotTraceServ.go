@@ -74,5 +74,5 @@ func (m *MiotTracingServImpl) handleFirstData(message mttypes.Message) {
 		//增加索引
 		ip := m.ip.
 	}
-
+	
 }

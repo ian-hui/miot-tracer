@@ -1,4 +1,4 @@
-package indexprocessor
+package secondindexprocessor
 
 import (
 	mttypes "miot_tracing_go/mtTypes"
@@ -40,6 +40,12 @@ func decompressXYT(combined int64) (unix_ts string) {
 		}
 	}
 	unix_ts = strconv.FormatInt(mid, 10)
+	return
+}
+
+func splitXYT2StartEnd(combined int64) (start_ts int64, end_ts int64) {
+	end_ts = combined & int64(mttypes.TS_LEN)
+	start_ts = combined >> 16
 	return
 }
 
@@ -92,4 +98,55 @@ func genElementCode(binNum int64, startTS string, max_elementcode_len int) int64
 	//只要低11位
 	bin = bin & int64(mttypes.ELEMENTCODE_LEN)
 	return bin
+}
+
+// 合并segment和XYT
+func splitSegmentAndXYT(combined int64) (segment int64, XYT int64) {
+	segment = combined & int64(mttypes.SEGMENT_LEN)
+	XYT = combined >> 8
+	return
+}
+
+// 分离nextnode和segment和XYT
+func splitAll(combined int64) (next_node int64, segment int64, XYT int64) {
+	next_node = combined & int64(mttypes.NEXT_NODE_LEN)
+	xyt_segment := combined >> 8
+	segment = xyt_segment & int64(mttypes.SEGMENT_LEN)
+	XYT = xyt_segment >> 8
+	return
+}
+
+// 合并XYT和segment
+func combineXYTAndSegment(XYT int64, segment int64) int64 {
+	return XYT<<8 | segment
+}
+
+// 合并整个secondindex
+func combineAll(XYT int64, segment int64, next_node int64) int64 {
+	xyt_segment := XYT<<8 | segment
+	return xyt_segment<<8 | next_node
+}
+
+// 解压secondindex
+func decompressSecondIndex(combined int64) (start_ts string, end_ts string, segment string, next_node string) {
+	unprocessed_next_node, unprocessed_segment, unprocessed_XYT := splitAll(combined)
+	segment = strconv.FormatInt(unprocessed_segment, 10)
+	next_node = strconv.FormatInt(unprocessed_next_node, 10)
+	strat, end := splitXYT2StartEnd(unprocessed_XYT)
+	start_ts = decompressXYT(strat)
+	end_ts = decompressXYT(end)
+	return
+}
+
+func String2UnixTimestamp(ts string) (int64, error) {
+	i, err := strconv.ParseInt(ts, 10, 64)
+	if err != nil {
+		iotlog.Errorln("strconv.ParseInt failed, err:", err)
+		return 0, err
+	}
+	return i, nil
+}
+
+func combineXYT(start_ts int64, end_ts int64) int64 {
+	return start_ts<<2 | end_ts
 }

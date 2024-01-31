@@ -1,11 +1,8 @@
 package indexprocessor
 
 import (
-	"fmt"
 	mttypes "miot_tracing_go/mtTypes"
-	"strconv"
 	"testing"
-	"time"
 )
 
 var (
@@ -31,11 +28,11 @@ var (
 func TestAddMeta(t *testing.T) {
 
 	i := NewIndexProcessor()
-	err := i.CreateSecondIndex(&test0)
+	err := i.SIP.CreateSecondIndex(&test0)
 	if err != nil {
 		t.Error(err)
 	}
-	err2 := i.UpdateSecondIndex(&test)
+	err2 := i.SIP.UpdateSecondIndex(&test)
 	if err2 != nil {
 		t.Error(err2)
 	}
@@ -48,18 +45,4 @@ func TestCreateIndex(t *testing.T) {
 	if err != nil {
 		t.Error(err)
 	}
-}
-
-func TestXYT(t *testing.T) {
-	layout := "2006-01-02 15:04:05"
-	times, err := time.Parse(layout, "2008-01-02 12:30:57")
-	if err != nil {
-		fmt.Println("Error parsing date:", err)
-		return
-	}
-	s := strconv.FormatInt(times.Unix(), 10)
-	fmt.Println(s)
-	combined := compressXYT(s)
-	fmt.Println(combined)
-	fmt.Println(decompressXYT(combined))
 }

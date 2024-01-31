@@ -5,6 +5,7 @@ import (
 	"fmt"
 	mttypes "miot_tracing_go/mtTypes"
 	"miot_tracing_go/pkg/logger"
+	secondindexprocessor "miot_tracing_go/pkg/miotTraceServ/indexProcessor/SecondIndexProcessor"
 	"strconv"
 
 	"github.com/go-redis/redis"
@@ -16,7 +17,8 @@ var (
 )
 
 type IndexProcessor struct {
-	c *redis.Client
+	c   *redis.Client
+	SIP *secondindexprocessor.SecondIndexProcessor
 }
 
 func NewIndexProcessor() *IndexProcessor {
@@ -28,58 +30,8 @@ func NewIndexProcessor() *IndexProcessor {
 		})
 		redisC = c
 	}
-	return &IndexProcessor{redisC}
-}
-
-func (i *IndexProcessor) CreateSecondIndex(mtdt *mttypes.SecondIndex) error {
-	// 先把数据序列化
-	XYT_compressed := compressXYT(mtdt.StartTs)
-	segment, err := strconv.Atoi(mtdt.Segment)
-	if err != nil {
-		iotlog.Errorln("strconv.Atoi failed, err:", err)
-		return err
-	}
-	add_segment_index := XYT_compressed<<8 | int64(segment)
-	RedisListKey := fmt.Sprintf("%s%s:%s:%s", mttypes.Node_prefix, mttypes.NODE_ID, mttypes.SecondIndex_prefix, mtdt.ID)
-	ic := i.c.RPush(RedisListKey, add_segment_index)
-	if ic.Err() != nil {
-		iotlog.Errorln("RPush failed, err:", ic.Err())
-		return ic.Err()
-	}
-	return nil
-}
-
-// 有个问题是 如果移动终端到达一个新节点后立刻又掉头回到原本节点 那么节点的元数据的最后一个
-func (i *IndexProcessor) UpdateSecondIndex(mtdt *mttypes.SecondIndex) error {
-	//从右边开始寻找
-	RedisListKey := fmt.Sprintf("%s%s:%s:%s", mttypes.Node_prefix, mttypes.NODE_ID, mttypes.SecondIndex_prefix, mtdt.ID)
-	sc := i.c.RPop(RedisListKey)
-	if sc.Err() != nil {
-		iotlog.Errorln("RPop failed, err:", sc.Err())
-		return sc.Err()
-	}
-	//把pop出来的元素unmarshal成struct
-	b, err := sc.Bytes()
-	if err != nil {
-		iotlog.Errorln("Bytes failed, err:", err)
-		return err
-	}
-	var metaBeforeCombination mttypes.SecondIndex
-	err = json.Unmarshal(b, &metaBeforeCombination)
-	if err != nil {
-		iotlog.Errorln("json.Unmarshal failed, err:", err)
-		return err
-	}
-	//把新的元素和pop出来的元素合并
-	combineMetaData(&metaBeforeCombination, mtdt)
-	//把合并后的元素push回去
-	value_json, err := json.Marshal(mtdt)
-	if err != nil {
-		iotlog.Errorln("json.Marshal failed, err:", err)
-		return err
-	}
-	i.c.RPush(RedisListKey, value_json)
-	return nil
+	return &IndexProcessor{redisC,
+		secondindexprocessor.NewSecondIndexProcessor(redisC)}
 }
 
 func (i *IndexProcessor) CreateThirdIndex(index *mttypes.ThirdIndex) error {
@@ -103,17 +55,3 @@ func (i *IndexProcessor) CreateThirdIndex(index *mttypes.ThirdIndex) error {
 }
 
 //-----------------helper functions-----------------
-
-func combineMetaData(metaBeforeCombination *mttypes.SecondIndex, mtdt *mttypes.SecondIndex) *mttypes.SecondIndex {
-	mtdt.StartTs = metaBeforeCombination.StartTs
-	return metaBeforeCombination
-}
-
-func String2UnixTimestamp(ts string) (int64, error) {
-	i, err := strconv.ParseInt(ts, 10, 64)
-	if err != nil {
-		iotlog.Errorln("strconv.ParseInt failed, err:", err)
-		return 0, err
-	}
-	return i, nil
-}

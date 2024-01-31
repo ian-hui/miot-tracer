@@ -34,4 +34,7 @@ var (
 	BIN_LEN         = int64(60 * 60 * 24) // 1 day
 	BIN_BINARY_LEN  = 0x1f
 	ELEMENTCODE_LEN = 0x7ff
+	TS_LEN          = 0xffff
+	SEGMENT_LEN     = 0xff
+	NEXT_NODE_LEN   = 0xff
 )
