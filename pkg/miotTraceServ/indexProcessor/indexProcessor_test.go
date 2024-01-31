@@ -1,25 +1,26 @@
 package indexprocessor
 
 import (
+	"fmt"
 	mttypes "miot_tracing_go/mtTypes"
+	"strconv"
 	"testing"
-
-	"github.com/go-redis/redis"
+	"time"
 )
 
 var (
-	test0 = mttypes.Metadata{
+	test0 = mttypes.SecondIndex{
 		ID:      "1",
 		StartTs: "1",
 		Segment: "3",
 	}
-	test = mttypes.Metadata{
+	test = mttypes.SecondIndex{
 		ID:       "1",
 		EndTs:    "2",
 		Segment:  "3",
 		NextNode: "4",
 	}
-	testIndex = mttypes.Index{
+	testIndex = mttypes.ThirdIndex{
 		ID:        "1",
 		Timestamp: "2",
 		NodeID:    "3",
@@ -28,31 +29,37 @@ var (
 )
 
 func TestAddMeta(t *testing.T) {
-	c := redis.NewClient(&redis.Options{
-		Addr:     "localhost:6379",
-		Password: "reins5401",
-		DB:       0,
-	})
-	i := NewIndexProcessor(c)
-	err := i.createMetaData(&test0)
+
+	i := NewIndexProcessor()
+	err := i.CreateSecondIndex(&test0)
 	if err != nil {
 		t.Error(err)
 	}
-	err2 := i.updateMetaData(&test)
+	err2 := i.UpdateSecondIndex(&test)
 	if err2 != nil {
 		t.Error(err2)
 	}
 }
 
 func TestCreateIndex(t *testing.T) {
-	c := redis.NewClient(&redis.Options{
-		Addr:     mttypes.RedisConfig.Addr,
-		Password: mttypes.RedisConfig.Pwd,
-		DB:       0,
-	})
-	i := NewIndexProcessor(c)
-	err := i.createIndex(&testIndex)
+
+	i := NewIndexProcessor()
+	err := i.CreateThirdIndex(&testIndex)
 	if err != nil {
 		t.Error(err)
 	}
+}
+
+func TestXYT(t *testing.T) {
+	layout := "2006-01-02 15:04:05"
+	times, err := time.Parse(layout, "2008-01-02 12:30:57")
+	if err != nil {
+		fmt.Println("Error parsing date:", err)
+		return
+	}
+	s := strconv.FormatInt(times.Unix(), 10)
+	fmt.Println(s)
+	combined := compressXYT(s)
+	fmt.Println(combined)
+	fmt.Println(decompressXYT(combined))
 }

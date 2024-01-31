@@ -36,10 +36,9 @@ func (dp *DataProcessor) insertTaxiData(d *mttypes.TaxiData) error {
 		iotlog.Errorln("CSVts2timestamp failed, err:", err)
 		return err
 	}
-	fmt.Println("ts:", ts)
-	fmt.Println(time.Now())
+	segment := strconv.Itoa(d.Segment)
 	p := influxdb2.NewPoint("taxi",
-		map[string]string{"taxi_id": d.TaxiID, "segment": d.Segment},
+		map[string]string{"taxi_id": d.TaxiID, "segment": segment},
 		map[string]interface{}{"longitude": d.Longitude, "latitude": d.Latitude, "occupancy": d.Occupancy},
 		ts)
 	fmt.Println("p:", p)

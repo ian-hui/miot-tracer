@@ -1,5 +1,7 @@
 package mttypes
 
+import "time"
+
 // var NODE_ID = os.Getenv("NODE_ID")
 var NODE_ID = "1"
 
@@ -11,9 +13,9 @@ var (
 		DB:      "0",
 		Timeout: "10",
 	}
-	Meta_prefix  = "meta_"
-	Index_prefix = "index_"
-	Node_prefix  = "node_"
+	SecondIndex_prefix = "Second_index_"
+	ThirdIndex_prefix  = "Third_index_"
+	Node_prefix        = "node_"
 )
 
 // influxdb配置
@@ -25,4 +27,11 @@ var (
 		Org:    "miot-tracer",
 	}
 	BucketNode_prefix = "node"
+)
+
+var (
+	REF_TIME        = time.Date(2008, 1, 1, 0, 0, 0, 0, time.UTC)
+	BIN_LEN         = int64(60 * 60 * 24) // 1 day
+	BIN_BINARY_LEN  = 0x1f
+	ELEMENTCODE_LEN = 0x7ff
 )

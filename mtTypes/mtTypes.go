@@ -10,33 +10,41 @@ type TaxiData struct {
 }
 
 type TaxiDataLabel struct {
-	Segment string
+	Segment int
 }
+
+type TaxiFrontNode string
 
 type TaxiInfo struct {
 	TaxiID      string
 	Index       []string
 	FronterNode string
-	Segment     []string
+	Segment     string
+}
+
+type FirstData struct {
+	TaxiData
+	TaxiFrontNode
 }
 
 type Message struct {
 	// 消息对应事件的类型, 详情见《事件类型》
 	Type string `json:"type"`
 	// 消息内容
-	Content string `json:"content"`
+	Content []byte `json:"content"`
 }
 
 // 事件类型
 var (
-	UPLOAD_TAXI_DATA = "MIOT_UPLOAD_TAXI_DATA" //上传出租车数据
-	UPLOAD_INDEX     = "MIOT_UPLOAD_INDEX"     //用于跳表索引
+	TYPE_FIRST_UPLOAD     = "MIOT_FIRST_UPLOAD"     //第一次上传数据
+	TYPE_UPLOAD_TAXI_DATA = "MIOT_UPLOAD_TAXI_DATA" //上传出租车数据
+	TYPE_UPLOAD_INDEX     = "MIOT_UPLOAD_INDEX"     //用于跳表索引
 )
 
 // metadata
 // ID ：starttime，endtime，segment，nextNode
 // 每个id做一个list
-type Metadata struct {
+type SecondIndex struct {
 	ID            string `json:"id"`
 	StartTs       string `json:"startts"`
 	EndTs         string `json:"endts"`
@@ -47,7 +55,7 @@ type Metadata struct {
 
 // index
 // id : [timestamp,nodeid,segment]
-type Index struct {
+type ThirdIndex struct {
 	ID        string `json:"id"`
 	Timestamp string `json:"timestamp"`
 	NodeID    string `json:"nodeid"`

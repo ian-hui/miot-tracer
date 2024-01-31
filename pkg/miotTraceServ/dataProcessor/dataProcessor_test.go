@@ -17,7 +17,7 @@ func TestInsertInfluxdb(t *testing.T) {
 		Latitude:  "4",
 		Occupancy: "5",
 		TaxiDataLabel: mttypes.TaxiDataLabel{
-			Segment: "1",
+			Segment: 1,
 		},
 	}
 	err := dp.insertTaxiData(d)
