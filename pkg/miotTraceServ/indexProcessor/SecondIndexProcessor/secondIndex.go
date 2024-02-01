@@ -1,7 +1,6 @@
 package secondindexprocessor
 
 import (
-	"encoding/binary"
 	"fmt"
 	mttypes "miot_tracing_go/mtTypes"
 	"miot_tracing_go/pkg/logger"
@@ -25,13 +24,17 @@ func NewSecondIndexProcessor(c *redis.Client) *SecondIndexProcessor {
 // index生成样子（3byte）：binNum(5位) + elementCode(11位) + segment(8位)
 func (i *SecondIndexProcessor) CreateSecondIndex(mtdt *mttypes.SecondIndex) error {
 	// 先把数据序列化
-	XYT_compressed := compressXYT(mtdt.StartTs)
+	XYT_compressed, err := compressXYT(mtdt.StartTs)
+	if err != nil {
+		iotlog.Errorln("compressXYT failed, err:", err)
+		return err
+	}
 	segment, err := strconv.ParseInt(mtdt.Segment, 10, 64)
 	if err != nil {
 		iotlog.Errorln("strconv.Atoi failed, err:", err)
 		return err
 	}
-	add_segment_index := XYT_compressed<<8 | segment
+	add_segment_index := combineXYTAndSegment(XYT_compressed, segment)
 	RedisListKey := fmt.Sprintf("%s%s:%s:%s", mttypes.Node_prefix, mttypes.NODE_ID, mttypes.SecondIndex_prefix, mtdt.ID)
 	ic := i.c.RPush(RedisListKey, add_segment_index)
 	if ic.Err() != nil {
@@ -52,16 +55,14 @@ func (i *SecondIndexProcessor) UpdateSecondIndex(mtdt *mttypes.SecondIndex) erro
 		return sc.Err()
 	}
 
-	buf, err := sc.Bytes()
+	buf, err := sc.Int64()
 	if err != nil {
 		iotlog.Errorln("Bytes failed, err:", err)
 		return err
 	}
-	//b转为int64
-	buf_int64 := int64(binary.BigEndian.Uint64(buf))
 
 	//拆分出segment和XYT
-	segment, XYT := splitSegmentAndXYT(buf_int64)
+	segment, XYT := splitSegmentAndXYT(buf)
 
 	//如果segment不相等，报错
 	segment_form_message, err := strconv.ParseInt(mtdt.Segment, 10, 64)
@@ -75,7 +76,12 @@ func (i *SecondIndexProcessor) UpdateSecondIndex(mtdt *mttypes.SecondIndex) erro
 	}
 
 	//增加endtime和nextnode
-	XYT_endtime_compressed := compressXYT(mtdt.EndTs)
+	XYT_endtime_compressed, err := compressXYT(mtdt.EndTs)
+	if err != nil {
+		iotlog.Errorln("compressXYT failed, err:", err)
+		return err
+	}
+
 	//nextnode
 	nextnode, err := strconv.ParseInt(mtdt.NextNode, 10, 64)
 	if err != nil {
@@ -83,21 +89,19 @@ func (i *SecondIndexProcessor) UpdateSecondIndex(mtdt *mttypes.SecondIndex) erro
 		return err
 	}
 	//合并
-	XYT_whole := combineXYT(XYT, XYT_endtime_compressed)
-	combined_whole_index := combineAll(XYT_whole, nextnode, segment)
+	combined_whole_index := combineAll(combineStartXYTAndEndXYT(XYT, XYT_endtime_compressed), nextnode, segment)
 	//把合并后的元素push回去
-
 	i.c.RPush(RedisListKey, combined_whole_index)
 	return nil
 }
 
 // 获取符合条件的secondindex
-func (i *SecondIndexProcessor) getSecondIndex(id string, startTs_from_query string) (second_indexes []mttypes.SecondIndex, err error) {
+func (i *SecondIndexProcessor) getSecondIndex(id string, startTs_from_query string, endTs_from_query string) (second_indexes []mttypes.SecondIndex, err error) {
 	RedisListKey := fmt.Sprintf("%s%s:%s:%s", mttypes.Node_prefix, mttypes.NODE_ID, mttypes.SecondIndex_prefix, id)
 	//从左到右查询
 	indexes, err := i.c.LRange(RedisListKey, 0, -1).Result()
 	if err != nil {
-		fmt.Println("Error retrieving list elements:", err)
+		iotlog.Errorln("Error retrieving list elements:", err)
 		return
 	}
 	//遍历每个元素
@@ -111,7 +115,7 @@ func (i *SecondIndexProcessor) getSecondIndex(id string, startTs_from_query stri
 
 		//解压
 		start_ts, end_ts, segment, next_node := decompressSecondIndex(value_64)
-		if check := checkSecondIndex(start_ts, end_ts, segment, next_node); check == false {
+		if check := checkSecondIndex(start_ts, end_ts, segment, next_node); !check {
 			iotlog.Errorln("secondindex checked failed")
 			return nil, fmt.Errorf("secondindex checked failed")
 		}
@@ -121,12 +125,18 @@ func (i *SecondIndexProcessor) getSecondIndex(id string, startTs_from_query stri
 			iotlog.Errorln("strconv.Atoi failed, err:", err)
 			return nil, err
 		}
+
 		startTs_from_query_64, err := strconv.ParseInt(startTs_from_query, 10, 64)
 		if err != nil {
 			iotlog.Errorln("strconv.Atoi failed, err:", err)
 			return nil, err
 		}
-		if start_ts_64 >= startTs_from_query_64 {
+		endTs_from_query_64, err := strconv.ParseInt(endTs_from_query, 10, 64)
+		if err != nil {
+			iotlog.Errorln("strconv.Atoi failed, err:", err)
+			return nil, err
+		}
+		if start_ts_64 >= startTs_from_query_64 && start_ts_64 <= endTs_from_query_64 {
 			second_indexes = append(second_indexes, mttypes.SecondIndex{
 				ID:       id,
 				StartTs:  start_ts,
