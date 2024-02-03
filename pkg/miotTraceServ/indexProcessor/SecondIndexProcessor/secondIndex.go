@@ -5,6 +5,7 @@ import (
 	mttypes "miot_tracing_go/mtTypes"
 	"miot_tracing_go/pkg/logger"
 	"strconv"
+	"time"
 
 	"github.com/go-redis/redis"
 )
@@ -21,25 +22,28 @@ func NewSecondIndexProcessor(c *redis.Client) *SecondIndexProcessor {
 	return &SecondIndexProcessor{c}
 }
 
-// index生成样子（3byte）：binNum(5位) + elementCode(11位) + segment(8位)
-func (i *SecondIndexProcessor) CreateSecondIndex(mtdt *mttypes.SecondIndex) error {
+// index生成样子（3byte）：XYT(16bit) + segment(8位)
+func (i *SecondIndexProcessor) CreateSecondIndex(mtdt *mttypes.SecondIndex) (err error) {
+	RedisListKey := fmt.Sprintf("%s%s:%s:%s", mttypes.Node_prefix, mttypes.NODE_ID, mttypes.SecondIndex_prefix, mtdt.ID)
+
 	// 先把数据序列化
-	XYT_compressed, err := compressXYT(mtdt.StartTs)
+	XYT_compressed, err := compressXYT(mtdt.StartTs, 11)
 	if err != nil {
 		iotlog.Errorln("compressXYT failed, err:", err)
 		return err
 	}
+
 	segment, err := strconv.ParseInt(mtdt.Segment, 10, 64)
 	if err != nil {
 		iotlog.Errorln("strconv.Atoi failed, err:", err)
 		return err
 	}
+
 	add_segment_index := combineXYTAndSegment(XYT_compressed, segment)
-	RedisListKey := fmt.Sprintf("%s%s:%s:%s", mttypes.Node_prefix, mttypes.NODE_ID, mttypes.SecondIndex_prefix, mtdt.ID)
-	ic := i.c.RPush(RedisListKey, add_segment_index)
-	if ic.Err() != nil {
-		iotlog.Errorln("RPush failed, err:", ic.Err())
-		return ic.Err()
+	redis_list := i.c.RPush(RedisListKey, add_segment_index)
+	if redis_list.Err() != nil {
+		iotlog.Errorln("RPush failed, err:", redis_list.Err())
+		return redis_list.Err()
 	}
 	return nil
 }
@@ -47,8 +51,16 @@ func (i *SecondIndexProcessor) CreateSecondIndex(mtdt *mttypes.SecondIndex) erro
 // 有个问题是 如果移动终端到达一个新节点后立刻又掉头回到原本节点 那么节点的元数据的最后一个
 // 补充成完整的secondindex
 func (i *SecondIndexProcessor) UpdateSecondIndex(mtdt *mttypes.SecondIndex) error {
-	//从右边开始寻找
 	RedisListKey := fmt.Sprintf("%s%s:%s:%s", mttypes.Node_prefix, mttypes.NODE_ID, mttypes.SecondIndex_prefix, mtdt.ID)
+
+	//判断是不是第一条index
+	RL_len := i.c.LLen(RedisListKey)
+	if RL_len.Err() != nil {
+		iotlog.Errorln("LLen failed, err:", RL_len.Err())
+		return RL_len.Err()
+	}
+
+	//把最后一个元素pop出来
 	sc := i.c.RPop(RedisListKey)
 	if sc.Err() != nil {
 		iotlog.Errorln("RPop failed, err:", sc.Err())
@@ -75,10 +87,12 @@ func (i *SecondIndexProcessor) UpdateSecondIndex(mtdt *mttypes.SecondIndex) erro
 		return fmt.Errorf("segment not equal")
 	}
 
-	//增加endtime和nextnode
-	XYT_endtime_compressed, err := compressXYT(mtdt.EndTs)
+	start_ts := decompressXYT(XYT, 11)
+
+	//variableIndex
+	XYT_endtime_compressed, err := VariableLengthCompress(mtdt.EndTs, start_ts)
 	if err != nil {
-		iotlog.Errorln("compressXYT failed, err:", err)
+		iotlog.Errorln("VariableLengthCompress failed, err:", err)
 		return err
 	}
 
@@ -105,16 +119,31 @@ func (i *SecondIndexProcessor) getSecondIndex(id string, startTs_from_query stri
 		return
 	}
 	//遍历每个元素
-	for _, v := range indexes {
+	for i, v := range indexes {
 		//把v转成int64
 		value_64, err := strconv.ParseInt(v, 10, 64)
 		if err != nil {
 			iotlog.Errorln("strconv.Atoi failed, err:", err)
 			return nil, err
 		}
+		var start_ts, end_ts, segment, next_node = "", "", "", ""
+		if i == 0 {
+			//解压
+			start_ts, end_ts, segment, next_node, err = decompressSecondIndex(value_64, mttypes.TYPE_SECOND_INDEX_FIRSTLINE)
+			if err != nil {
+				iotlog.Errorln("decompressSecondIndex failed, err:", err)
+				return nil, err
+			}
+		} else {
+			//解压
+			start_ts, end_ts, segment, next_node, err = decompressSecondIndex(value_64, mttypes.TYPE_SECOND_INDEX_OTHERLINE)
+			if err != nil {
+				iotlog.Errorln("decompressSecondIndex failed, err:", err)
+				return nil, err
+			}
 
-		//解压
-		start_ts, end_ts, segment, next_node := decompressSecondIndex(value_64)
+		}
+
 		if check := checkSecondIndex(start_ts, end_ts, segment, next_node); !check {
 			iotlog.Errorln("secondindex checked failed")
 			return nil, fmt.Errorf("secondindex checked failed")
@@ -125,6 +154,9 @@ func (i *SecondIndexProcessor) getSecondIndex(id string, startTs_from_query stri
 			iotlog.Errorln("strconv.Atoi failed, err:", err)
 			return nil, err
 		}
+		fmt.Println(time.Unix(start_ts_64, 0).UTC())
+		end_ts_64, _ := strconv.ParseInt(end_ts, 10, 64)
+		fmt.Println(time.Unix(end_ts_64, 0).UTC())
 
 		startTs_from_query_64, err := strconv.ParseInt(startTs_from_query, 10, 64)
 		if err != nil {

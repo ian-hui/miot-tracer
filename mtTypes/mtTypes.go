@@ -82,3 +82,5 @@ type QueryStru struct {
 	Segment   string `json:"segment"`
 	ID        string `json:"id"`
 }
+
+type SecondIndexType string

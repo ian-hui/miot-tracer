@@ -20,20 +20,20 @@ var (
 )
 
 func TestXYT(t *testing.T) {
-	times, err := time.Parse(layout, "2008-01-02 12:30:57")
+	times, err := time.Parse(layout, "2008-01-04 12:30:57")
 	if err != nil {
 		fmt.Println("Error parsing date:", err)
 		return
 	}
 	s := strconv.FormatInt(times.Unix(), 10)
 	fmt.Println(s)
-	combined, err := compressXYT(s)
+	combined, err := compressXYT(s, 10)
 	if err != nil {
 		fmt.Println("Error parsing date:", err)
 		return
 	}
 	fmt.Println(combined)
-	decompress_s := decompressXYT(combined)
+	decompress_s := decompressXYT(combined, 10)
 	fmt.Println(decompress_s)
 	//转回时间戳
 	i, _ := strconv.ParseInt(decompress_s, 10, 64)
@@ -77,6 +77,42 @@ func TestCreate2Index(t *testing.T) {
 
 }
 
+func TestAppend2Index(t *testing.T) {
+
+	times, err := time.Parse(layout, "2008-01-04 12:30:57")
+	if err != nil {
+		fmt.Println("Error parsing date:", err)
+		return
+	}
+	times_string := strconv.FormatInt(times.UTC().Unix(), 10)
+	err = s.CreateSecondIndex(&mttypes.SecondIndex{
+		ID:      "1",
+		StartTs: times_string,
+		Segment: "7",
+	})
+	if err != nil {
+		fmt.Println("Error parsing date:", err)
+		return
+	}
+	endtime, err := time.Parse(layout, "2008-01-06 12:30:58")
+	if err != nil {
+		fmt.Println("Error parsing date:", err)
+		return
+	}
+	endtime_string := strconv.FormatInt(endtime.UTC().Unix(), 10)
+	err = s.UpdateSecondIndex(&mttypes.SecondIndex{
+		ID:       "1",
+		EndTs:    endtime_string,
+		Segment:  "7",
+		NextNode: "4",
+	})
+	if err != nil {
+		fmt.Println("Error parsing date:", err)
+		return
+	}
+
+}
+
 func TestQuery2Index(t *testing.T) {
 	queryStart, err := time.Parse(layout, "2008-01-01 12:30:10")
 	if err != nil {
@@ -84,7 +120,7 @@ func TestQuery2Index(t *testing.T) {
 		return
 	}
 	queryStart_string := strconv.FormatInt(queryStart.UTC().Unix(), 10)
-	queryEnd, err := time.Parse(layout, "2008-01-05 12:30:58")
+	queryEnd, err := time.Parse(layout, "2008-01-09 12:30:58")
 	if err != nil {
 		fmt.Println("Error parsing date:", err)
 		return
@@ -106,5 +142,10 @@ func TestSplitAndCombineXYT(t *testing.T) {
 	fmt.Println(i)
 	s1, e1 := splitXYT2StartEnd(i)
 	fmt.Println(s1, e1)
-
+	s2 := decompressXYT(s1, 11)
+	e2 := decompressXYT(e1, 11)
+	s2_64, _ := strconv.ParseInt(s2, 10, 64)
+	e2_64, _ := strconv.ParseInt(e2, 10, 64)
+	fmt.Println(time.Unix(s2_64, 0).UTC(), time.Unix(e2_64, 0).UTC())
+	fmt.Println(s2, e2)
 }

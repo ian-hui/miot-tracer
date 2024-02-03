@@ -30,11 +30,15 @@ var (
 )
 
 var (
-	REF_TIME        = time.Date(2008, 1, 1, 0, 0, 0, 0, time.UTC)
-	BIN_LEN         = int64(60 * 60 * 24) // 1 day
-	BIN_BINARY_LEN  = 0x1f
-	ELEMENTCODE_LEN = 0x7ff
-	TS_LEN          = 0xffff
-	SEGMENT_LEN     = 0xff
-	NEXT_NODE_LEN   = 0xff
+	REF_TIME           = time.Date(2008, 1, 1, 0, 0, 0, 0, time.UTC)
+	BIN_LEN            = int64(60 * 60 * 24) // 1 day
+	BIN_BINARY_LEN     = 0x1f
+	ELEMENTCODE_LEN    = 0x7ff
+	TS_LEN             = 0xffff
+	SEGMENT_LEN        = 0xff
+	NEXT_NODE_LEN      = 0xff
+	VARIABLE_CHECK_LEN = (1 << 15) - 1
+
+	TYPE_SECOND_INDEX_FIRSTLINE SecondIndexType = "MIOT_SECONDE_INDEX_FIRSTLINE"
+	TYPE_SECOND_INDEX_OTHERLINE SecondIndexType = "MIOT_SECONDE_INDEX_OTHERLINE"
 )

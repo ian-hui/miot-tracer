@@ -1,42 +1,110 @@
 package secondindexprocessor
 
 import (
+	"errors"
+	"fmt"
 	mttypes "miot_tracing_go/mtTypes"
 	"strconv"
+	"time"
 )
 
 //------------------------------------------------------------------
 //------------------------compress and decompress-------------------
 //------------------------------------------------------------------
 
+func VariableLengthCompress(ts string, first_index_start_ts string) (int64, error) {
+	// 转换成int64
+	ts_int64, err := strconv.ParseInt(ts, 10, 64)
+	if err != nil {
+		iotlog.Errorln("strconv.ParseInt failed, err:", err)
+		return 0, err
+	}
+	first_index_start_ts_int64, err := strconv.ParseInt(first_index_start_ts, 10, 64)
+	if err != nil {
+		iotlog.Errorln("strconv.ParseInt failed, err:", err)
+		return 0, err
+	}
+	// 计算差值
+	diff := ts_int64 - first_index_start_ts_int64
+	if diff <= 0 {
+		iotlog.Errorln("diff <= 0")
+		return 0, errors.New("diff <= 0")
+	}
+	if diff < int64(mttypes.VARIABLE_CHECK_LEN) {
+		//采用秒索引
+		exact_index, err := CompressExactIndex(diff)
+		if err != nil {
+			iotlog.Errorln("exactIndex failed, err:", err)
+			return 0, err
+		}
+		return exact_index, nil
+	} else {
+		i, err := compressXYT(ts, 10)
+		if err != nil {
+			iotlog.Errorln("compressXYT failed, err:", err)
+			return 0, err
+		}
+		return (1<<15 | i), nil
+	}
+}
+
+func VariableLengthDecompress(combined int64) (string, error) {
+	mode_code := combined >> 15
+	if mode_code == 0 {
+		//采用秒索引
+		exact_index, err := DecompressExactIndex(combined)
+		if err != nil {
+			iotlog.Errorln("DecompressExactIndex failed, err:", err)
+			return "", err
+		}
+		return strconv.FormatInt(exact_index, 10), nil
+	} else {
+		//采用XYT
+		i := combined & int64(mttypes.VARIABLE_CHECK_LEN)
+		return decompressXYT(i, 10), nil
+	}
+}
+
+// 精确索引
+func CompressExactIndex(diff int64) (int64, error) {
+	// 用15bit保存差值
+	return 0<<15 | diff, nil
+}
+
+func DecompressExactIndex(combined int64) (int64, error) {
+	return combined & int64(mttypes.VARIABLE_CHECK_LEN), nil
+}
+
 // 压缩XYT(helper function)
-func compressXYT(ts string) (int64, error) {
-	//binnum
+func compressXYT(ts string, max_elementcode_len int) (int64, error) {
+	//binnum（5位）
 	binNum, err := genBinNum(ts)
 	if err != nil {
 		iotlog.Errorln("genBinNum failed, err:", err)
 		return 0, err
 	}
-	//elementCode （11位）
-	elementCode := genElementCode(binNum, ts, 11)
+	//elementCode （max_elementcode_len位）
+	elementCode := genElementCode(binNum, ts, max_elementcode_len)
 	//把binNum和elementCode合并
-	combined := binNum<<11 | elementCode
+	combined := binNum<<max_elementcode_len | elementCode
 	return combined, nil
 }
 
 // 解压XYT
-func decompressXYT(combined int64) (unix_ts string) {
+func decompressXYT(combined int64, max_elementcode_len int) (unix_ts string) {
 	//先取出binNum
-	binNum := combined >> 11
+	binNum := combined >> max_elementcode_len
 	//还原时间戳
-	binnum_start_ts := mttypes.REF_TIME.Unix() + binNum*mttypes.BIN_LEN
+	binnum_start_ts := mttypes.REF_TIME.UTC().Unix() + binNum*mttypes.BIN_LEN
 	binnum_end_ts := binnum_start_ts + mttypes.BIN_LEN
+
+	fmt.Println("s", time.Unix(binnum_start_ts, 0).UTC(), time.Unix(binnum_end_ts, 0).UTC())
 	//取出elementCode
-	elementCode := combined & int64(mttypes.ELEMENTCODE_LEN)
+	elementCode := combined & int64(1<<max_elementcode_len-1)
 	//用二分的方法找到startTS的位置
 	s := strconv.FormatInt(elementCode, 2)
 	//补0
-	for i := 0; i < 11-len(s); i++ {
+	for i := 0; i < max_elementcode_len-len(s); i++ {
 		s = "0" + s
 	}
 	mid := (binnum_start_ts + binnum_end_ts) / 2
@@ -54,15 +122,31 @@ func decompressXYT(combined int64) (unix_ts string) {
 }
 
 // 解压secondindex
-func decompressSecondIndex(combined int64) (start_ts string, end_ts string, segment string, next_node string) {
+func decompressSecondIndex(combined int64, second_index_type mttypes.SecondIndexType) (start_ts string, end_ts string, segment string, next_node string, err error) {
 	unprocessed_next_node, unprocessed_segment, unprocessed_XYT := splitAll(combined)
 
 	segment = strconv.FormatInt(unprocessed_segment, 10)
 	next_node = strconv.FormatInt(unprocessed_next_node, 10)
 	start, end := splitXYT2StartEnd(unprocessed_XYT)
-	start_ts = decompressXYT(start)
-	end_ts = decompressXYT(end)
+
+	switch second_index_type {
+	case mttypes.TYPE_SECOND_INDEX_FIRSTLINE:
+		start_ts = decompressXYT(start, 11)
+		end_ts = decompressXYT(end, 11)
+	case mttypes.TYPE_SECOND_INDEX_OTHERLINE:
+		start_ts, err = VariableLengthDecompress(start)
+		if err != nil {
+			iotlog.Errorln("VariableLengthDecompress failed, err:", err)
+			return
+		}
+		end_ts, err = VariableLengthDecompress(end)
+		if err != nil {
+			iotlog.Errorln("VariableLengthDecompress failed, err:", err)
+			return
+		}
+	}
 	return
+
 }
 
 //------------------------------------------------------------------
@@ -111,6 +195,9 @@ func genElementCode(binNum int64, startTS string, max_elementcode_len int) int64
 			binnum_start_ts = mid
 			mid = (mid + binnum_end_ts) / 2
 		}
+		fmt.Println(time.Unix(mid, 0).UTC())
+		fmt.Println(s)
+
 	}
 	//把s转成二进制
 	bin, err := strconv.ParseInt(s, 2, 64)
@@ -118,8 +205,8 @@ func genElementCode(binNum int64, startTS string, max_elementcode_len int) int64
 		iotlog.Errorln("strconv.ParseInt failed, err:", err)
 		return 0
 	}
-	//只要低11位
-	bin = bin & int64(mttypes.ELEMENTCODE_LEN)
+	//只要低maxlen位
+	bin = bin & int64((1<<max_elementcode_len)-1)
 	return bin
 }
 
