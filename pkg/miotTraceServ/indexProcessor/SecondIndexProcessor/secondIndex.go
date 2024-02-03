@@ -119,7 +119,7 @@ func (i *SecondIndexProcessor) getSecondIndex(id string, startTs_from_query stri
 		return
 	}
 	//遍历每个元素
-	for i, v := range indexes {
+	for _, v := range indexes {
 		//把v转成int64
 		value_64, err := strconv.ParseInt(v, 10, 64)
 		if err != nil {
@@ -127,23 +127,12 @@ func (i *SecondIndexProcessor) getSecondIndex(id string, startTs_from_query stri
 			return nil, err
 		}
 		var start_ts, end_ts, segment, next_node = "", "", "", ""
-		if i == 0 {
-			//解压
-			start_ts, end_ts, segment, next_node, err = decompressSecondIndex(value_64, mttypes.TYPE_SECOND_INDEX_FIRSTLINE)
-			if err != nil {
-				iotlog.Errorln("decompressSecondIndex failed, err:", err)
-				return nil, err
-			}
-		} else {
-			//解压
-			start_ts, end_ts, segment, next_node, err = decompressSecondIndex(value_64, mttypes.TYPE_SECOND_INDEX_OTHERLINE)
-			if err != nil {
-				iotlog.Errorln("decompressSecondIndex failed, err:", err)
-				return nil, err
-			}
-
+		//解压
+		start_ts, end_ts, segment, next_node, err = decompressSecondIndex(value_64)
+		if err != nil {
+			iotlog.Errorln("decompressSecondIndex failed, err:", err)
+			return nil, err
 		}
-
 		if check := checkSecondIndex(start_ts, end_ts, segment, next_node); !check {
 			iotlog.Errorln("secondindex checked failed")
 			return nil, fmt.Errorf("secondindex checked failed")
