@@ -58,7 +58,7 @@ func TestCreate2Index(t *testing.T) {
 		fmt.Println("Error parsing date:", err)
 		return
 	}
-	endtime, err := time.Parse(layout, "2008-01-03 12:30:58")
+	endtime, err := time.Parse(layout, "2008-01-05 16:15:58")
 	if err != nil {
 		fmt.Println("Error parsing date:", err)
 		return
@@ -79,7 +79,7 @@ func TestCreate2Index(t *testing.T) {
 
 func TestAppend2Index(t *testing.T) {
 
-	times, err := time.Parse(layout, "2008-01-04 12:30:57")
+	times, err := time.Parse(layout, "2008-01-06 09:01:01")
 	if err != nil {
 		fmt.Println("Error parsing date:", err)
 		return
@@ -94,7 +94,7 @@ func TestAppend2Index(t *testing.T) {
 		fmt.Println("Error parsing date:", err)
 		return
 	}
-	endtime, err := time.Parse(layout, "2008-01-06 12:30:58")
+	endtime, err := time.Parse(layout, "2008-01-07 21:11:03")
 	if err != nil {
 		fmt.Println("Error parsing date:", err)
 		return

@@ -118,7 +118,12 @@ func decompressXYT(combined int64, max_elementcode_len int) (unix_ts string) {
 			mid = (mid + binnum_end_ts) / 2
 		}
 	}
-	unix_ts = strconv.FormatInt(mid, 10)
+	//如果最后一位是0，就取start_ts，否则取end_ts
+	if s[len(s)-1] == '0' {
+		unix_ts = strconv.FormatInt(binnum_start_ts, 10)
+	} else {
+		unix_ts = strconv.FormatInt(mid, 10)
+	}
 	return
 }
 
@@ -197,6 +202,7 @@ func genElementCode(binNum int64, startTS string, max_elementcode_len int) int64
 		fmt.Println(s)
 
 	}
+	fmt.Println(len(s))
 	//把s转成二进制
 	bin, err := strconv.ParseInt(s, 2, 64)
 	if err != nil {
