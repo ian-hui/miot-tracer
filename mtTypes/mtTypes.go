@@ -10,7 +10,7 @@ type TaxiData struct {
 }
 
 type TaxiDataLabel struct {
-	Segment int
+	Segment string
 }
 
 type TaxiFrontNode string
@@ -36,9 +36,10 @@ type Message struct {
 
 // 事件类型
 var (
-	TYPE_FIRST_UPLOAD     = "MIOT_FIRST_UPLOAD"     //第一次上传数据
-	TYPE_UPLOAD_TAXI_DATA = "MIOT_UPLOAD_TAXI_DATA" //上传出租车数据
-	TYPE_UPLOAD_INDEX     = "MIOT_UPLOAD_INDEX"     //用于跳表索引
+	TYPE_FIRST_UPLOAD        = "MIOT_FIRST_UPLOAD"        //第一次上传数据
+	TYPE_UPLOAD_TAXI_DATA    = "MIOT_UPLOAD_TAXI_DATA"    //上传出租车数据
+	TYPE_UPLOAD_THIRD_INDEX  = "MIOT_UPLOAD_THIRD_INDEX"  //用于跳表索引
+	TYPE_UPDATE_SECOND_INDEX = "MIOT_UPDATE_SECOND_INDEX" //更新二级索引
 )
 
 // metadata

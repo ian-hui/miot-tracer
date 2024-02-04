@@ -29,16 +29,15 @@ func NewDataProcessor() *DataProcessor {
 	return &DataProcessor{client}
 }
 
-func (dp *DataProcessor) insertTaxiData(d *mttypes.TaxiData) error {
+func (dp *DataProcessor) InsertTaxiData(d *mttypes.TaxiData) error {
 	writeAPI := client.WriteAPI(mttypes.InfluxConfig.Org, mttypes.InfluxConfig.Bucket)
 	ts, err := CSVts2timestamp(d.Timestamp)
 	if err != nil {
 		iotlog.Errorln("CSVts2timestamp failed, err:", err)
 		return err
 	}
-	segment := strconv.Itoa(d.Segment)
 	p := influxdb2.NewPoint("taxi",
-		map[string]string{"taxi_id": d.TaxiID, "segment": segment},
+		map[string]string{"taxi_id": d.TaxiID, "segment": d.Segment},
 		map[string]interface{}{"longitude": d.Longitude, "latitude": d.Latitude, "occupancy": d.Occupancy},
 		ts)
 	fmt.Println("p:", p)
@@ -46,12 +45,12 @@ func (dp *DataProcessor) insertTaxiData(d *mttypes.TaxiData) error {
 	return nil
 }
 
-func (dp *DataProcessor) flushData() {
+func (dp *DataProcessor) FlushData() {
 	writeAPI := client.WriteAPI(mttypes.InfluxConfig.Org, mttypes.InfluxConfig.Bucket)
 	writeAPI.Flush()
 }
 
-func (dp *DataProcessor) queryTaxiData(query *mttypes.QueryStru) (result *api.QueryTableResult, err error) {
+func (dp *DataProcessor) QueryTaxiData(query *mttypes.QueryStru) (result *api.QueryTableResult, err error) {
 	queryAPI := client.QueryAPI(mttypes.InfluxConfig.Org)
 	// 准备参数
 	bucketName := mttypes.BucketNode_prefix + mttypes.NODE_ID
@@ -81,7 +80,7 @@ func (dp *DataProcessor) queryTaxiData(query *mttypes.QueryStru) (result *api.Qu
 	return
 }
 
-func (dp *DataProcessor) clientClose() {
+func (dp *DataProcessor) ClientClose() {
 	client.Close()
 }
 

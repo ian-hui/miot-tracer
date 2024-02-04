@@ -9,7 +9,7 @@ import (
 
 func TestInsertInfluxdb(t *testing.T) {
 	dp := NewDataProcessor()
-	defer dp.flushData()
+	defer dp.FlushData()
 	d := &mttypes.TaxiData{
 		TaxiID:    "1",
 		Timestamp: "1213037726",
@@ -17,10 +17,10 @@ func TestInsertInfluxdb(t *testing.T) {
 		Latitude:  "4",
 		Occupancy: "5",
 		TaxiDataLabel: mttypes.TaxiDataLabel{
-			Segment: 1,
+			Segment: "1",
 		},
 	}
-	err := dp.insertTaxiData(d)
+	err := dp.InsertTaxiData(d)
 	if err != nil {
 		t.Error(err)
 	}
@@ -48,7 +48,7 @@ func TestQueryInfluxdb(t *testing.T) {
 		EndTime:   "2215037729",
 		ID:        "5",
 	}
-	result, err := dp.queryTaxiData(query)
+	result, err := dp.QueryTaxiData(query)
 	if err != nil {
 		t.Error(err)
 	}

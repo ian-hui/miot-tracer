@@ -3,7 +3,7 @@ package mttypes
 import "time"
 
 // var NODE_ID = os.Getenv("NODE_ID")
-var NODE_ID = "1"
+const NODE_ID string = "1"
 
 // redis配置
 var (
