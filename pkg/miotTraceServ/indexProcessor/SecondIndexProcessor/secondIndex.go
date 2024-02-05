@@ -50,6 +50,7 @@ func (i *SecondIndexProcessor) CreateSecondIndex(mtdt *mttypes.SecondIndex) (err
 
 // 有个问题是 如果移动终端到达一个新节点后立刻又掉头回到原本节点 那么节点的元数据的最后一个
 // 补充成完整的secondindex
+// mtdt需要有：ID, EndTs, Segment, NextNode
 func (i *SecondIndexProcessor) UpdateSecondIndex(mtdt *mttypes.SecondIndex) error {
 	RedisListKey := fmt.Sprintf("%s%s:%s:%s", mttypes.Node_prefix, mttypes.NODE_ID, mttypes.SecondIndex_prefix, mtdt.ID)
 

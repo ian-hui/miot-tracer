@@ -30,7 +30,8 @@ type FirstData struct {
 
 type Message struct {
 	// 消息对应事件的类型, 详情见《事件类型》
-	Type string `json:"type"`
+	Type  string `json:"type"`
+	Topic string `json:"topic"`
 	// 消息内容
 	Content []byte `json:"content"`
 }
@@ -39,8 +40,9 @@ type Message struct {
 var (
 	TYPE_FIRST_UPLOAD        = "MIOT_FIRST_UPLOAD"        //第一次上传数据
 	TYPE_UPLOAD_TAXI_DATA    = "MIOT_UPLOAD_TAXI_DATA"    //上传出租车数据
-	TYPE_UPLOAD_THIRD_INDEX  = "MIOT_UPLOAD_THIRD_INDEX"  //用于跳表索引
-	TYPE_UPDATE_SECOND_INDEX = "MIOT_UPDATE_SECOND_INDEX" //更新二级索引
+	TYPE_UPLOAD_THIRD_INDEX  = "MIOT_UPLOAD_THIRD_INDEX"  //接收🚕的索引并转发
+	TYPE_UPDATE_SECOND_INDEX = "MIOT_UPDATE_SECOND_INDEX" //更新二级索引(补全endtime和nextnode)
+	TYPE_UPDATE_THIRD_INDEX  = "MIOT_UPDATE_THIRD_INDEX"  //更新三级索引(接收转发并存储)
 )
 
 // metadata

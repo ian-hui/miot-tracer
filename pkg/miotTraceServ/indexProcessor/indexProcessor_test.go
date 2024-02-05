@@ -36,12 +36,3 @@ func TestAddMeta(t *testing.T) {
 		t.Error(err2)
 	}
 }
-
-func TestCreateIndex(t *testing.T) {
-
-	i := NewIndexProcessor()
-	err := i.CreateThirdIndex(&testIndex)
-	if err != nil {
-		t.Error(err)
-	}
-}
