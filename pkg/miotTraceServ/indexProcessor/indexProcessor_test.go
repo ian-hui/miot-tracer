@@ -18,10 +18,9 @@ var (
 		NextNode: "4",
 	}
 	testIndex = mttypes.ThirdIndex{
-		ID:        "1",
-		Timestamp: "2",
-		NodeID:    "3",
-		Segment:   "4",
+		ID:          "1",
+		SequenceNum: "2",
+		NodeID:      "3",
 	}
 )
 

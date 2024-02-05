@@ -145,6 +145,25 @@ func (m *MiotTracingServImpl) handleData(message mttypes.Message) (err error) {
 	return
 }
 
+func (m *MiotTracingServImpl) handleThirdIndex(message mttypes.Message) (err error) {
+	var thirdIndex mttypes.ThirdIndex
+	if err = json.Unmarshal(message.Content, &thirdIndex); err != nil {
+		iotlog.Errorf("json unmarshal error: %v", err)
+		return
+	}
+	//add third index
+	err = m.ip.CreateThirdIndex(&mttypes.ThirdIndex{
+		ID:        thirdIndex.ID,
+		Timestamp: thirdIndex.Timestamp,
+		NodeID:    thirdIndex.NodeID,
+	})
+	if err != nil {
+		iotlog.Errorf("CreateThirdIndex error: %v", err)
+		return
+	}
+	return
+}
+
 // GetProcessChan 提供对 processChan 的访问
 func (m *MiotTracingServImpl) GetProcessChan() chan mttypes.Message {
 	return m.processChan

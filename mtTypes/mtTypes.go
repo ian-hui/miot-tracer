@@ -20,6 +20,7 @@ type TaxiInfo struct {
 	Index       []string
 	FronterNode string
 	Segment     string
+	PreTime     string
 }
 
 type FirstData struct {
@@ -57,10 +58,9 @@ type SecondIndex struct {
 // index
 // id : [timestamp,nodeid,segment]
 type ThirdIndex struct {
-	ID        string `json:"id"`
-	Timestamp string `json:"timestamp"`
-	NodeID    string `json:"nodeid"`
-	Segment   string `json:"segment"`
+	ID          string `json:"id"`
+	SequenceNum string `json:"sequencenum"`
+	NodeID      string `json:"nodeid"`
 }
 
 type RedisConf struct {
@@ -78,10 +78,16 @@ type InfluxConf struct {
 }
 
 type QueryStru struct {
-	StartTime string `json:"starttime"`
-	EndTime   string `json:"endtime"`
-	Segment   string `json:"segment"`
-	ID        string `json:"id"`
+	Tii       ThirdIndexInfo //查询条件
+	StartTime string         `json:"starttime"`
+	EndTime   string         `json:"endtime"`
+	Segment   string         `json:"segment"`
+	ID        string         `json:"id"`
+}
+
+type ThirdIndexInfo struct {
+	Taxi_Start_Ts string `json:"taxi_start_ts"`
+	Skip_Ts       string `json:"skip_ts"`
 }
 
 type SecondIndexType string

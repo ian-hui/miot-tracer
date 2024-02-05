@@ -30,7 +30,10 @@ var (
 )
 
 var (
-	REF_TIME           = time.Date(2008, 1, 1, 0, 0, 0, 0, time.UTC)
+	REF_TIME = time.Date(2008, 1, 1, 0, 0, 0, 0, time.UTC)
+)
+
+const (
 	BIN_LEN            = int64(60 * 60 * 24) // 1 day
 	BIN_BINARY_LEN     = 0x1f
 	ELEMENTCODE_LEN    = 0x7ff
@@ -41,4 +44,10 @@ var (
 
 	TYPE_SECOND_INDEX_FIRSTLINE SecondIndexType = "MIOT_SECONDE_INDEX_FIRSTLINE"
 	TYPE_SECOND_INDEX_OTHERLINE SecondIndexType = "MIOT_SECONDE_INDEX_OTHERLINE"
+)
+
+const (
+	THIRD_INDEX_NODE_ID_LEN      = 8
+	THIRD_INDEX_SEQUENCE_NUM_LEN = 16
+	TS_SKIP                      = 60 * 30 // 30 min
 )
