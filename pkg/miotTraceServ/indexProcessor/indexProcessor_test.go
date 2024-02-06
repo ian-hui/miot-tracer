@@ -17,11 +17,6 @@ var (
 		Segment:  "3",
 		NextNode: "4",
 	}
-	testIndex = mttypes.ThirdIndex{
-		ID:          "1",
-		SequenceNum: "2",
-		NodeID:      "3",
-	}
 )
 
 func TestAddMeta(t *testing.T) {

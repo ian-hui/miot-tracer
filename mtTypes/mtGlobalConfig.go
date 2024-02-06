@@ -1,9 +1,12 @@
 package mttypes
 
-import "time"
+import (
+	"os"
+	"time"
+)
 
 // var NODE_ID = os.Getenv("NODE_ID")
-const NODE_ID string = "1"
+var NODE_ID string = os.Getenv("NODE_ID")
 
 // redis配置
 var (
@@ -16,6 +19,7 @@ var (
 	SecondIndex_prefix = "Second_index_"
 	ThirdIndex_prefix  = "Third_index_"
 	Node_prefix        = "node_"
+	TAXI_ID_PREFIX     = "taxi_"
 )
 
 // influxdb配置
@@ -23,7 +27,7 @@ var (
 	InfluxConfig = InfluxConf{
 		Url:    "http://localhost:8086",
 		Token:  "1pJyO11iMPsN4MQ0E-gkVcq5ZlgSyvsjiiMgUBGn9rmGfYr3TU3ekMNpJTwbpK15dkVDelPS6nYeM7eRwWBSVg==",
-		Bucket: "node1",
+		Bucket: os.Getenv("INFLUX_BUCKET"),
 		Org:    "miot-tracer",
 	}
 	BucketNode_prefix = "node"
@@ -50,4 +54,9 @@ const (
 	THIRD_INDEX_NODE_ID_LEN      = 8
 	THIRD_INDEX_SEQUENCE_NUM_LEN = 16
 	TS_SKIP                      = 60 * 30 // 30 min
+)
+
+// 一致性哈希配置
+const (
+	NODE_TOTAL_NUM = 16
 )

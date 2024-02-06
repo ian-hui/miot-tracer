@@ -2,15 +2,14 @@ package indexprocessor
 
 import (
 	mttypes "miot_tracing_go/mtTypes"
-	"miot_tracing_go/pkg/logger"
 	secondindexprocessor "miot_tracing_go/pkg/miotTraceServ/indexProcessor/SecondIndexProcessor"
 	thirdindexprocessor "miot_tracing_go/pkg/miotTraceServ/indexProcessor/ThirdIndexProcessor"
+	"strconv"
 
 	"github.com/go-redis/redis"
 )
 
 var (
-	iotlog = logger.Miotlogger
 	redisC *redis.Client
 )
 
@@ -35,4 +34,8 @@ func NewIndexProcessor() *IndexProcessor {
 	}
 }
 
-//-----------------helper functions-----------------
+func (ip *IndexProcessor) InsertHeadMeta(f_data mttypes.FirstData) error {
+	meta := f_data.Timestamp + ":" + strconv.Itoa(mttypes.TS_SKIP)
+	sc := ip.c.Set(f_data.TaxiID, meta, 0)
+	return sc.Err()
+}

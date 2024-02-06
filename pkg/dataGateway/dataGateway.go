@@ -28,9 +28,8 @@ func NewDataGateway(miottraceserv.MiotTracingServ) Datagateway {
 func (d dataGatewayImpl) Start() {
 	// mqtt
 	dataGatewayMqtt := NewDataGatewayMqtt()
-	dataGatewayMqtt.mqttSubscribe(TopicUpload3Index, upload3IndexHandler)
-	dataGatewayMqtt.mqttSubscribe(TopicUploadTaxiData, uploadTaxiDataHandler)
-	dataGatewayMqtt.mqttSubscribe(TopicUpdate2Index, update2IndexHandler)
+	dataGatewayMqtt.mqttSubscribe(RECEIVER, RECEIVERHandler)
+
 	// http
 	dataGatewayHttp := NewDataGatewayHTTP()
 	dataGatewayHttp.Start()

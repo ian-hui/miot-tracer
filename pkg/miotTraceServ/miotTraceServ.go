@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"math"
 	mttypes "miot_tracing_go/mtTypes"
+	consistenthash "miot_tracing_go/pkg/consistentHash"
 	"miot_tracing_go/pkg/logger"
 	dataprocessor "miot_tracing_go/pkg/miotTraceServ/dataProcessor"
 	indexprocessor "miot_tracing_go/pkg/miotTraceServ/indexProcessor"
@@ -23,22 +24,29 @@ type MiotTracingServ interface {
 }
 
 type MiotTracingServImpl struct {
-	dp          *dataprocessor.DataProcessor
-	ip          *indexprocessor.IndexProcessor
-	processChan chan mttypes.Message
-	sendingChan chan mttypes.Message
+	consistentHash *consistenthash.ConsistentHash
+	dp             *dataprocessor.DataProcessor
+	ip             *indexprocessor.IndexProcessor
+	processChan    chan mttypes.Message
+	sendingChan    chan mttypes.Message
 }
 
-func NewMiotTracingServImpl() *MiotTracingServImpl {
+func NewMiotTracingServImpl() MiotTracingServ {
 	return &MiotTracingServImpl{
-		dp:          dataprocessor.NewDataProcessor(),
-		ip:          indexprocessor.NewIndexProcessor(),
-		processChan: make(chan mttypes.Message, 100),
-		sendingChan: make(chan mttypes.Message, 100),
+		consistentHash: consistenthash.NewConsistentHash(10),
+		dp:             dataprocessor.NewDataProcessor(),
+		ip:             indexprocessor.NewIndexProcessor(),
+		processChan:    make(chan mttypes.Message, 100),
+		sendingChan:    make(chan mttypes.Message, 100),
 	}
 }
 
 func (mts *MiotTracingServImpl) Start(worker_num int) {
+	// 初始化一致性哈希
+	for i := 1; i <= mttypes.NODE_TOTAL_NUM; i++ {
+		mts.consistentHash.AddNode(fmt.Sprintf("%d", i))
+	}
+	// 启动worker
 	for i := 0; i < worker_num; i++ {
 		go mts.worker(i)
 	}
@@ -78,6 +86,11 @@ func (m *MiotTracingServImpl) handleMessage(message mttypes.Message) error {
 		if err != nil {
 			iotlog.Errorf("handleUpdateThirdIndex error: %v", err)
 		}
+	case mttypes.TYPE_UPLOAD_THIRD_INDEX_HEAD:
+		err := m.handleUploadMetaData(message)
+		if err != nil {
+			iotlog.Errorf("handleUploadMetaData error: %v", err)
+		}
 	default:
 		iotlog.Errorf("unknown message type: %v", message.Type)
 	}
@@ -88,10 +101,6 @@ func (m *MiotTracingServImpl) handleFirstData(message mttypes.Message) (err erro
 	var firstData mttypes.FirstData
 	if err = json.Unmarshal(message.Content, &firstData); err != nil {
 		iotlog.Errorf("json unmarshal error: %v", err)
-		return
-	}
-	if firstData.TaxiFrontNode == "" {
-		iotlog.Errorf("empty TaxiFrontNode")
 		return
 	}
 	//add first data
@@ -122,6 +131,11 @@ func (m *MiotTracingServImpl) handleFirstData(message mttypes.Message) (err erro
 		return
 	}
 	if firstData.Segment != "1" {
+
+		if firstData.TaxiFrontNode == "" {
+			iotlog.Errorf("empty TaxiFrontNode")
+			return
+		}
 		//把endtime传输给channel，传输到前一个节点
 		sendback_second_index := mttypes.SecondIndex{
 			ID:       firstData.TaxiID,
@@ -134,12 +148,61 @@ func (m *MiotTracingServImpl) handleFirstData(message mttypes.Message) (err erro
 			iotlog.Errorf("json marshal error: %v", err)
 			return err
 		}
-		topic := fmt.Sprintf("%s/%s", mttypes.TYPE_UPDATE_SECOND_INDEX, firstData.TaxiFrontNode)
+		topic := string(firstData.TaxiFrontNode)
 		m.sendingChan <- mttypes.Message{
 			Type:    mttypes.TYPE_UPDATE_SECOND_INDEX,
 			Topic:   topic,
 			Content: sendback_second_index_json,
 		}
+	} else {
+		//第一次上传数据，初始化
+		//传递信息-上传链表头节点（third index header）
+		node_id := m.consistentHash.GetNode(mttypes.TAXI_ID_PREFIX + ":" + firstData.TaxiID)
+		if node_id != mttypes.NODE_ID {
+			topic := node_id
+			m.sendingChan <- mttypes.Message{
+				Type:    mttypes.TYPE_UPLOAD_THIRD_INDEX_HEAD,
+				Topic:   topic,
+				Content: message.Content,
+			}
+		} else {
+			err = m.ip.InsertHeadMeta(firstData)
+			if err != nil {
+				iotlog.Errorf("InsertHeadMeta error: %v", err)
+				return
+			}
+		}
+		//更新第三级索引
+		third_index := mttypes.ThirdIndex{
+			ID:          firstData.TaxiID,
+			SequenceNum: "1",
+			NodeID:      mttypes.NODE_ID,
+		}
+		third_index_json, err := json.Marshal(third_index)
+		if err != nil {
+			iotlog.Errorf("json marshal error: %v", err)
+			return err
+		}
+		topic := node_id
+		m.sendingChan <- mttypes.Message{
+			Type:    mttypes.TYPE_UPDATE_THIRD_INDEX,
+			Topic:   topic,
+			Content: third_index_json,
+		}
+	}
+	return
+}
+
+func (m *MiotTracingServImpl) handleUploadMetaData(message mttypes.Message) (err error) {
+	var firstData mttypes.FirstData
+	if err = json.Unmarshal(message.Content, &firstData); err != nil {
+		iotlog.Errorf("json unmarshal error: %v", err)
+		return
+	}
+	err = m.ip.InsertHeadMeta(firstData)
+	if err != nil {
+		iotlog.Errorf("InsertHeadMeta error: %v", err)
+		return
 	}
 	return
 }
@@ -175,6 +238,9 @@ func (m *MiotTracingServImpl) handleUploadThirdIndex(message mttypes.Message) (e
 		iotlog.Errorf("json unmarshal error: %v", err)
 		return
 	}
+	//taxi记录的索引是没有头节点的，所以要加上头节点
+	the_header_index := m.consistentHash.GetNode(mttypes.TAXI_ID_PREFIX + ":" + taxi_info.TaxiID)
+	taxi_info.Index = append([]string{"0" + ":" + the_header_index}, taxi_info.Index...)
 	forward_map, err := getForwardThirdIndexMap(taxi_info.Index)
 	if err != nil {
 		iotlog.Errorf("getForwardThirdIndexMap error: %v", err)
@@ -186,7 +252,7 @@ func (m *MiotTracingServImpl) handleUploadThirdIndex(message mttypes.Message) (e
 			iotlog.Errorf("json marshal error: %v", err)
 			return err
 		}
-		topic := fmt.Sprintf("%s/%s", mttypes.TYPE_UPDATE_THIRD_INDEX, node_id)
+		topic := node_id
 		m.sendingChan <- mttypes.Message{
 			Type:    mttypes.TYPE_UPDATE_THIRD_INDEX,
 			Topic:   topic,
@@ -245,6 +311,7 @@ func decreaseSegment(segment string) string {
 	return strconv.Itoa(segment_int)
 }
 
+// seq:id
 func getForwardThirdIndexMap(indexes []string) (forward_map map[string]mttypes.ThirdIndex, err error) {
 	//取出本地的thirdindex
 	local_index := len(indexes) - 1

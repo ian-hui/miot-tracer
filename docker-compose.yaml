@@ -24,6 +24,7 @@ services:
 
   miot-tracer-redis:
     image: redis
+    container_name: redis
     command: redis-server /etc/redis/redis.conf --appendonly yes
     ports:
       - "6379:6379"
@@ -44,4 +45,22 @@ services:
     environment:
       - REDIS_URI=redis://miot-tracer-redis:6379
     links:
+      - miot-tracer-redis
+
+#-----------------node-----------------
+  miot-tracer-node_1:
+    image: debian:bullseye-slim
+    volumes:
+      - ./miot_tracing_go:/miot_tracing_go
+    command: ["/miot_tracing_go"]
+    restart: always
+    environment:
+      - NODE_ID=1
+      - INFLUXDB_URL=http://influxdb:8086
+      - INFLUXDB_BUCKET=node1
+      - REDIS_URL=redis://miot-tracer_miot-tracer-redis_1:6379
+    networks:
+      - web-network
+    depends_on:
+      - docker-influxdb
       - miot-tracer-redis
