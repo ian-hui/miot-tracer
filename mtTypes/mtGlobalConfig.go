@@ -11,7 +11,7 @@ var NODE_ID string = os.Getenv("NODE_ID")
 // redis配置
 var (
 	RedisConfig = RedisConf{
-		Addr:    "localhost:6379",
+		Addr:    os.Getenv("REDIS_URL"),
 		Pwd:     "reins5401",
 		DB:      "0",
 		Timeout: "10",
@@ -25,9 +25,9 @@ var (
 // influxdb配置
 var (
 	InfluxConfig = InfluxConf{
-		Url:    "http://localhost:8086",
-		Token:  "1pJyO11iMPsN4MQ0E-gkVcq5ZlgSyvsjiiMgUBGn9rmGfYr3TU3ekMNpJTwbpK15dkVDelPS6nYeM7eRwWBSVg==",
-		Bucket: os.Getenv("INFLUX_BUCKET"),
+		Url:    os.Getenv("INFLUXDB_URL"),
+		Token:  os.Getenv("INFLUXDB_TOKEN"),
+		Bucket: os.Getenv("INFLUXDB_BUCKET"),
 		Org:    "miot-tracer",
 	}
 	BucketNode_prefix = "node"

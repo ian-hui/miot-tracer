@@ -47,6 +47,7 @@ func (c *ConsistentHash) RemoveNode(node string) {
 	}
 }
 
+
 // GetNode 返回给定键的哈希值最近的节点
 func (c *ConsistentHash) GetNode(key string) string {
 	if len(c.keys) == 0 {

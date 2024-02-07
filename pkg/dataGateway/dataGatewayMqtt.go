@@ -39,7 +39,7 @@ func NewDataGatewayMqtt() *dataGatewayMqtt {
 			}
 		}
 		if !recoverd {
-			iotlog.Fatalln("mqtt connect failed, exit...")
+			iotlog.Fatalln("mqtt connect failed, exit. error: ", token.Error())
 			panic("mqtt connect failed, exit...")
 		}
 	}
