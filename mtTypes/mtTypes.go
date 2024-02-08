@@ -44,6 +44,7 @@ var (
 	TYPE_UPLOAD_THIRD_INDEX_HEAD = "MIOT_UPLOAD_THIRD_INDEX_HEAD" //存储头节点
 	TYPE_UPDATE_SECOND_INDEX     = "MIOT_UPDATE_SECOND_INDEX"     //更新二级索引(补全endtime和nextnode)
 	TYPE_UPDATE_THIRD_INDEX      = "MIOT_UPDATE_THIRD_INDEX"      //更新三级索引(接收转发并存储)
+	TYPE_QUERY_TAXI_DATA         = "MIOT_QUERY_TAXI_DATA"         //查询出租车数据
 )
 
 // metadata
@@ -82,6 +83,8 @@ type InfluxConf struct {
 
 type QueryStru struct {
 	Tii       ThirdIndexInfo //查询条件
+	QueryNode string         `json:"querynode"` //记录发起查询的节点，用于回传信息
+	RequestID string         `json:"requestid"` //记录用户终端id，用于回传信息
 	StartTime string         `json:"starttime"`
 	EndTime   string         `json:"endtime"`
 	Segment   string         `json:"segment"`
@@ -94,3 +97,8 @@ type ThirdIndexInfo struct {
 }
 
 type SecondIndexType string
+
+type Result struct {
+	Request_id string      `json:"request_id"`
+	Result     interface{} `json:"result"`
+}

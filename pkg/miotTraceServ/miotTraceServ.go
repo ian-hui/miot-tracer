@@ -21,7 +21,7 @@ type MiotTracingServ interface {
 	Start(worker_num int)
 	GetProcessChan() chan mttypes.Message
 	GetSendingChan() chan mttypes.Message
-	HandleFirstData(message mttypes.Message) error
+	GetResultChan() chan mttypes.Result
 }
 
 type MiotTracingServImpl struct {
@@ -30,6 +30,7 @@ type MiotTracingServImpl struct {
 	ip             *indexprocessor.IndexProcessor
 	processChan    chan mttypes.Message
 	sendingChan    chan mttypes.Message
+	resultChan     chan mttypes.Result
 }
 
 func NewMiotTracingServImpl() MiotTracingServ {
@@ -39,6 +40,7 @@ func NewMiotTracingServImpl() MiotTracingServ {
 		ip:             indexprocessor.NewIndexProcessor(),
 		processChan:    make(chan mttypes.Message, 100),
 		sendingChan:    make(chan mttypes.Message, 100),
+		resultChan:     make(chan mttypes.Result, 100),
 	}
 }
 
@@ -60,7 +62,7 @@ func (m *MiotTracingServImpl) worker(workerID int) {
 	}
 }
 
-func (m *MiotTracingServImpl) HandleFirstData(message mttypes.Message) (err error) {
+func (m *MiotTracingServImpl) handleFirstData(message mttypes.Message) (err error) {
 	contentBytes, err := json.Marshal(message.Content)
 	if err != nil {
 		fmt.Println("Error marshalling content back to JSON:", err)
@@ -275,6 +277,22 @@ func (m *MiotTracingServImpl) handleUpdateThirdIndex(message mttypes.Message) (e
 	return
 }
 
+// 查询
+func (m *MiotTracingServImpl) queryData(message mttypes.Message) (err error) {
+	contentBytes, err := json.Marshal(message.Content)
+	if err != nil {
+		fmt.Println("Error marshalling content back to JSON:", err)
+		return
+	}
+	var third_index mttypes.ThirdIndex
+	if err = json.Unmarshal(contentBytes, &third_index); err != nil {
+		iotlog.Errorf("json unmarshal error: %v", err)
+		return
+	}
+	//补全信息
+	return
+}
+
 // GetProcessChan 提供对 processChan 的访问
 func (m *MiotTracingServImpl) GetProcessChan() chan mttypes.Message {
 	return m.processChan
@@ -283,6 +301,11 @@ func (m *MiotTracingServImpl) GetProcessChan() chan mttypes.Message {
 // GetSendingChan 提供对 sendingChan 的访问
 func (m *MiotTracingServImpl) GetSendingChan() chan mttypes.Message {
 	return m.sendingChan
+}
+
+// GetResultChan 提供对 resultChan 的访问
+func (m *MiotTracingServImpl) GetResultChan() chan mttypes.Result {
+	return m.resultChan
 }
 
 // -------------------------helper function---------------------------

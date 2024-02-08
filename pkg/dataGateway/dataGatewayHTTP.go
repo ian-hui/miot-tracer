@@ -1,7 +1,6 @@
 package datagateway
 
 import (
-	"fmt"
 	"net/http"
 
 	"github.com/gin-gonic/gin"
@@ -12,6 +11,7 @@ type DataGatewayHTTP struct {
 }
 
 func (d *DataGatewayHTTP) Start() {
+	//启动http服务
 	err := d.gin.Run(":8080")
 	if err != nil {
 		//重试
@@ -40,21 +40,10 @@ func (d *DataGatewayHTTP) Start() {
 
 func NewDataGatewayHTTP() *DataGatewayHTTP {
 	router := gin.Default()
-	router.GET("/search/:taxi_id/:start_time/:end_time", searchHandler)
-	return &DataGatewayHTTP{
+	http_Gateway := &DataGatewayHTTP{
 		gin: router,
 	}
-}
-
-func searchHandler(c *gin.Context) {
-	taxiID := c.Param("taxi_id")
-	startTime := c.Param("start_time")
-	endTime := c.Param("end_time")
-	//查询
-	fmt.Println(taxiID, startTime, endTime)
-	data := "taxi_id,timestamp,longitude,latitude\n"
-	//返回
-	returnCSV(c, data)
+	return http_Gateway
 }
 
 //-------------------- return格式 --------------------

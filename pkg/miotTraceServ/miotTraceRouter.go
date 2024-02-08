@@ -6,7 +6,7 @@ import mttypes "miot_tracing_go/mtTypes"
 func (m *MiotTracingServImpl) handleMessage(message mttypes.Message) error {
 	switch message.Type {
 	case mttypes.TYPE_FIRST_UPLOAD:
-		err := m.HandleFirstData(message)
+		err := m.handleFirstData(message)
 		if err != nil {
 			iotlog.Errorf("handleFirstData error: %v", err)
 		}

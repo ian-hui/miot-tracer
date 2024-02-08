@@ -1,6 +1,7 @@
 package datagateway
 
 import (
+	"encoding/json"
 	mttypes "miot_tracing_go/mtTypes"
 	"miot_tracing_go/pkg/logger"
 	miottraceserv "miot_tracing_go/pkg/miotTraceServ"
@@ -16,8 +17,10 @@ type Datagateway interface {
 type dataGatewayImpl struct {
 	mqtt        *DataGatewayMqtt
 	http        *DataGatewayHTTP
+	reuqest_map map[string]chan interface{}
 	processChan chan mttypes.Message
 	sendingChan chan mttypes.Message
+	resultChan  chan mttypes.Result
 }
 
 func NewDataGateway(m miottraceserv.MiotTracingServ) Datagateway {
@@ -27,6 +30,7 @@ func NewDataGateway(m miottraceserv.MiotTracingServ) Datagateway {
 		http:        NewDataGatewayHTTP(),
 		processChan: m.GetProcessChan(),
 		sendingChan: m.GetSendingChan(),
+		resultChan:  m.GetResultChan(),
 	}
 }
 
@@ -35,5 +39,27 @@ func (d dataGatewayImpl) Start() {
 	d.mqtt.mqttSubscribe(RECEIVER, d.RECEIVERHandler)
 	go d.asyncSendMsg() //异步发送消息
 	// http
+	d.http.gin.GET("/search/:taxi_id/:start_time/:end_time", d.searchHandler)
 	d.http.Start()
+}
+
+func (d *dataGatewayImpl) asyncSendMsg() {
+	for msg := range d.sendingChan {
+		b_msg, err := json.Marshal(msg)
+		if err != nil {
+			iotlog.Errorln("marshal failed :", err)
+			continue
+		}
+		err = d.mqtt.mqttPublish(msg.Topic, b_msg)
+		if err != nil {
+			iotlog.Errorln("publish failed :", err)
+		}
+	}
+}
+
+func (d *dataGatewayImpl) asyncRequestIdDeliver() {
+	for result := range d.resultChan {
+		request_id := result.Request_id
+		d.reuqest_map[request_id] <- result
+	}
 }
