@@ -1,17 +1,27 @@
 package mttypes
 
 import (
+	"fmt"
 	"os"
 	"time"
 )
 
+func init() {
+	fmt.Println("init global config")
+	os.Setenv("NODE_ID", "1")
+	os.Setenv("INFLUXDB_TOKEN", "J_xeoyLkPQFHBilXk4ELHjV85A7fFtIJvlo3GTjmKnF3QPZU63H7N0FH5_x7JBMPy3MRvVwoeoW0rnReDyLuPg==")
+	os.Setenv("INFLUXDB_URL", "http://localhost:8086")
+	os.Setenv("INFLUXDB_BUCKET", "node1")
+	os.Setenv("REDIS_URL", "localhost:6379")
+}
+
 // var NODE_ID = os.Getenv("NODE_ID")
-var NODE_ID string = os.Getenv("NODE_ID")
+var NODE_ID string = "1"
 
 // redis配置
 var (
 	RedisConfig = RedisConf{
-		Addr:    os.Getenv("REDIS_URL"),
+		Addr:    "localhost:6379",
 		Pwd:     "reins5401",
 		DB:      "0",
 		Timeout: "10",
@@ -25,9 +35,9 @@ var (
 // influxdb配置
 var (
 	InfluxConfig = InfluxConf{
-		Url:    os.Getenv("INFLUXDB_URL"),
-		Token:  os.Getenv("INFLUXDB_TOKEN"),
-		Bucket: os.Getenv("INFLUXDB_BUCKET"),
+		Url:    "http://localhost:8086",
+		Token:  "J_xeoyLkPQFHBilXk4ELHjV85A7fFtIJvlo3GTjmKnF3QPZU63H7N0FH5_x7JBMPy3MRvVwoeoW0rnReDyLuPg==",
+		Bucket: "node1",
 		Org:    "miot-tracer",
 	}
 	BucketNode_prefix = "node"
@@ -58,5 +68,5 @@ const (
 
 // 一致性哈希配置
 const (
-	NODE_TOTAL_NUM = 16
+	NODE_TOTAL_NUM = 3
 )

@@ -14,23 +14,26 @@ type Datagateway interface {
 	Start()
 }
 type dataGatewayImpl struct {
+	mqtt        *DataGatewayMqtt
+	http        *DataGatewayHTTP
 	processChan chan mttypes.Message
 	sendingChan chan mttypes.Message
 }
 
-func NewDataGateway(miottraceserv.MiotTracingServ) Datagateway {
+func NewDataGateway(m miottraceserv.MiotTracingServ) Datagateway {
+
 	return &dataGatewayImpl{
-		processChan: miottraceserv.NewMiotTracingServImpl().GetProcessChan(),
-		sendingChan: miottraceserv.NewMiotTracingServImpl().GetSendingChan(),
+		mqtt:        NewDataGatewayMqtt(),
+		http:        NewDataGatewayHTTP(),
+		processChan: m.GetProcessChan(),
+		sendingChan: m.GetSendingChan(),
 	}
 }
 
 func (d dataGatewayImpl) Start() {
 	// mqtt
-	dataGatewayMqtt := NewDataGatewayMqtt()
-	dataGatewayMqtt.mqttSubscribe(RECEIVER, RECEIVERHandler)
-
+	d.mqtt.mqttSubscribe(RECEIVER, d.RECEIVERHandler)
+	go d.asyncSendMsg() //异步发送消息
 	// http
-	dataGatewayHttp := NewDataGatewayHTTP()
-	dataGatewayHttp.Start()
+	d.http.Start()
 }

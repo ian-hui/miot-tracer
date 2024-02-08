@@ -7,11 +7,11 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-type dataGatewayHTTP struct {
+type DataGatewayHTTP struct {
 	gin *gin.Engine
 }
 
-func (d *dataGatewayHTTP) Start() {
+func (d *DataGatewayHTTP) Start() {
 	err := d.gin.Run(":8080")
 	if err != nil {
 		//重试
@@ -38,10 +38,10 @@ func (d *dataGatewayHTTP) Start() {
 //-------------------- controller&router --------------------
 //-------------------- controller&router --------------------
 
-func NewDataGatewayHTTP() *dataGatewayHTTP {
+func NewDataGatewayHTTP() *DataGatewayHTTP {
 	router := gin.Default()
 	router.GET("/search/:taxi_id/:start_time/:end_time", searchHandler)
-	return &dataGatewayHTTP{
+	return &DataGatewayHTTP{
 		gin: router,
 	}
 }

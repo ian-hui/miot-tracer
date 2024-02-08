@@ -16,11 +16,11 @@ type TaxiDataLabel struct {
 type TaxiFrontNode string
 
 type TaxiInfo struct {
-	TaxiID      string
-	Index       []string
-	FronterNode string
-	Segment     string
-	PreTime     string
+	TaxiID      string   `json:"id"`
+	Index       []string `json:"index"`
+	FronterNode string   `json:"fronter_node"`
+	Segment     string   `json:"segment"`
+	PreTime     string   `json:"pre_time"` // 由于希望taxi半小时发送一次信息，所以🚕自身需要记录一个上次发送信息的时间，一旦超过半小时，就发送一次upload_third_index
 }
 
 type FirstData struct {
@@ -33,7 +33,7 @@ type Message struct {
 	Type  string `json:"type"`
 	Topic string `json:"topic"`
 	// 消息内容
-	Content []byte `json:"content"`
+	Content interface{} `json:"content"`
 }
 
 // 事件类型
@@ -50,12 +50,12 @@ var (
 // ID ：starttime，endtime，segment，nextNode
 // 每个id做一个list
 type SecondIndex struct {
-	ID            string `json:"id"`
-	StartTs       string `json:"startts"`
-	EndTs         string `json:"endts"`
-	Segment       string `json:"segment"`
-	NextNode      string `json:"nextnode"`
-	NextMetaIndex string `json:"nextmetaindex"` //下一个metadata的在redislist的索引
+	ID       string `json:"id"`
+	StartTs  string `json:"startts"`
+	EndTs    string `json:"endts"`
+	Segment  string `json:"segment"`
+	NextNode string `json:"nextnode"`
+	// NextSecondIndex string `json:"nextnodeindex"` //下一个节点的二级索引在redis—list的index
 }
 
 // index

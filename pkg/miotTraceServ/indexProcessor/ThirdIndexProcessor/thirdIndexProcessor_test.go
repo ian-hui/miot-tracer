@@ -18,11 +18,11 @@ var (
 
 func TestAddThirdIndex(t *testing.T) {
 	var (
-		testIndex = mttypes.ThirdIndex{
-			ID:          "1",
-			SequenceNum: "2",
-			NodeID:      "3",
-		}
+		// testIndex = mttypes.ThirdIndex{
+		// 	ID:          "1",
+		// 	SequenceNum: "2",
+		// 	NodeID:      "3",
+		// }
 		testQuery = mttypes.QueryStru{
 			ID: "1",
 			Tii: mttypes.ThirdIndexInfo{
@@ -32,11 +32,11 @@ func TestAddThirdIndex(t *testing.T) {
 			StartTime: "10000",
 		}
 	)
-	err := s.CreateThirdIndex(&testIndex)
-	if err != nil {
-		fmt.Println("Error parsing date:", err)
-		return
-	}
+	// err := s.CreateThirdIndex(&testIndex)
+	// if err != nil {
+	// 	fmt.Println("Error parsing date:", err)
+	// 	return
+	// }
 	node_id, err := s.QueryThirdIndex(&testQuery)
 	if err != nil {
 		fmt.Println("Error parsing date:", err)

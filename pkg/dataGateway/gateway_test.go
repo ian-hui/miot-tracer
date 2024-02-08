@@ -13,7 +13,7 @@ func TestMqtt(T *testing.T) {
 	c.mqttSubscribe("test", func(client mqtt.Client, msg mqtt.Message) {
 		fmt.Printf("Received message: %s from topic: %s\n", msg.Payload(), msg.Topic())
 	})
-	c.mqttPublish("test")
+	c.mqttPublish("test", []byte("hello world"))
 	select {}
 }
 

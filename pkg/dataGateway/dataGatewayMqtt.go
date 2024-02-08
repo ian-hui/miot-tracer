@@ -1,7 +1,6 @@
 package datagateway
 
 import (
-	"fmt"
 	"time"
 
 	mqtt "github.com/eclipse/paho.mqtt.golang"
@@ -15,11 +14,11 @@ var connectLostHandler mqtt.ConnectionLostHandler = func(client mqtt.Client, err
 	iotlog.Errorf("Connect lost: %v", err)
 }
 
-type dataGatewayMqtt struct {
+type DataGatewayMqtt struct {
 	mqttClient *mqtt.Client
 }
 
-func NewDataGatewayMqtt() *dataGatewayMqtt {
+func NewDataGatewayMqtt() *DataGatewayMqtt {
 	opts := getMqttDefaultConfig()
 	opts.OnConnect = connectHandler
 	opts.OnConnectionLost = connectLostHandler
@@ -43,32 +42,28 @@ func NewDataGatewayMqtt() *dataGatewayMqtt {
 			panic("mqtt connect failed, exit...")
 		}
 	}
-	return &dataGatewayMqtt{
+	return &DataGatewayMqtt{
 		mqttClient: &client,
 	}
 }
 
-func (d *dataGatewayMqtt) mqttPublish(topic string) {
+func (d *DataGatewayMqtt) mqttPublish(topic string, message []byte) error {
 	qos := QOS
-	msgCount := 0
-	for {
-		payload := fmt.Sprintf("message: %d!", msgCount)
-		if token := (*d.mqttClient).Publish(topic, byte(qos), false, payload); token.Wait() && token.Error() != nil {
-			iotlog.Errorln("publish failed")
-			return
-		} else {
-			iotlog.Infof("publish success, topic: %s, payload: %s\n", topic, payload)
-		}
-		msgCount++
-		time.Sleep(time.Second * 1)
+	payload := message
+	if token := (*d.mqttClient).Publish(topic, byte(qos), false, payload); token.Wait() && token.Error() != nil {
+		iotlog.Errorln("publish failed")
+		return token.Error()
+	} else {
+		iotlog.Infof("publish success, topic: %s, payload: %s\n", topic, payload)
 	}
+	return nil
 }
 
-func (d *dataGatewayMqtt) mqttSubscribe(topic string, handler func(client mqtt.Client, msg mqtt.Message)) {
+func (d *DataGatewayMqtt) mqttSubscribe(topic string, handler func(client mqtt.Client, msg mqtt.Message)) {
 	qos := QOS
 	(*d.mqttClient).Subscribe(topic, byte(qos), handler)
 }
 
-func (d *dataGatewayMqtt) mqttDisconnect() {
+func (d *DataGatewayMqtt) mqttDisconnect() {
 	(*d.mqttClient).Disconnect(250)
 }

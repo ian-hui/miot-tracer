@@ -8,7 +8,11 @@ import (
 )
 
 var Miotlogger *zap.SugaredLogger
-var logAddr = "./logFile/miot_tracer_log.json"
+
+// test
+var logAddr = "/home/ianhui/code/miot-tracer/logFile/miot_tracer_log.json"
+
+// var logAddr = "./logFile/miot_tracer_log.json"
 
 func init() {
 	//初始化日志

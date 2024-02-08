@@ -20,13 +20,15 @@ var (
 )
 
 func TestXYT(t *testing.T) {
-	times, err := time.Parse(layout, "2008-01-04 12:30:57")
+	times, err := time.Parse(layout, "2008-01-06 09:01:01")
 	if err != nil {
 		fmt.Println("Error parsing date:", err)
 		return
 	}
 	s := strconv.FormatInt(times.Unix(), 10)
 	fmt.Println(s)
+	//1199449857
+	//1199610061
 	combined, err := compressXYT(s, 10)
 	if err != nil {
 		fmt.Println("Error parsing date:", err)

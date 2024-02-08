@@ -21,6 +21,7 @@ type MiotTracingServ interface {
 	Start(worker_num int)
 	GetProcessChan() chan mttypes.Message
 	GetSendingChan() chan mttypes.Message
+	HandleFirstData(message mttypes.Message) error
 }
 
 type MiotTracingServImpl struct {
@@ -59,47 +60,14 @@ func (m *MiotTracingServImpl) worker(workerID int) {
 	}
 }
 
-func (m *MiotTracingServImpl) handleMessage(message mttypes.Message) error {
-	switch message.Type {
-	case mttypes.TYPE_FIRST_UPLOAD:
-		err := m.handleFirstData(message)
-		if err != nil {
-			iotlog.Errorf("handleFirstData error: %v", err)
-		}
-	case mttypes.TYPE_UPLOAD_THIRD_INDEX:
-		err := m.handleUploadThirdIndex(message)
-		if err != nil {
-			iotlog.Errorf("handleUploadThirdIndex error: %v", err)
-		}
-	case mttypes.TYPE_UPLOAD_TAXI_DATA:
-		err := m.handleData(message)
-		if err != nil {
-			iotlog.Errorf("handleData error: %v", err)
-		}
-	case mttypes.TYPE_UPDATE_SECOND_INDEX:
-		err := m.handleUpdateSecondIndex(message)
-		if err != nil {
-			iotlog.Errorf("handleUpdateSecondIndex error: %v", err)
-		}
-	case mttypes.TYPE_UPDATE_THIRD_INDEX:
-		err := m.handleUpdateThirdIndex(message)
-		if err != nil {
-			iotlog.Errorf("handleUpdateThirdIndex error: %v", err)
-		}
-	case mttypes.TYPE_UPLOAD_THIRD_INDEX_HEAD:
-		err := m.handleUploadMetaData(message)
-		if err != nil {
-			iotlog.Errorf("handleUploadMetaData error: %v", err)
-		}
-	default:
-		iotlog.Errorf("unknown message type: %v", message.Type)
+func (m *MiotTracingServImpl) HandleFirstData(message mttypes.Message) (err error) {
+	contentBytes, err := json.Marshal(message.Content)
+	if err != nil {
+		fmt.Println("Error marshalling content back to JSON:", err)
+		return
 	}
-	return nil
-}
-
-func (m *MiotTracingServImpl) handleFirstData(message mttypes.Message) (err error) {
 	var firstData mttypes.FirstData
-	if err = json.Unmarshal(message.Content, &firstData); err != nil {
+	if err = json.Unmarshal(contentBytes, &firstData); err != nil {
 		iotlog.Errorf("json unmarshal error: %v", err)
 		return
 	}
@@ -130,6 +98,7 @@ func (m *MiotTracingServImpl) handleFirstData(message mttypes.Message) (err erro
 		iotlog.Errorf("InsertTaxiData error: %v", err)
 		return
 	}
+	//是第一次在本节点上传数据，但是不是第一次上传数据
 	if firstData.Segment != "1" {
 
 		if firstData.TaxiFrontNode == "" {
@@ -143,16 +112,11 @@ func (m *MiotTracingServImpl) handleFirstData(message mttypes.Message) (err erro
 			Segment:  decreaseSegment(firstData.Segment),
 			NextNode: mttypes.NODE_ID,
 		}
-		sendback_second_index_json, err := json.Marshal(sendback_second_index)
-		if err != nil {
-			iotlog.Errorf("json marshal error: %v", err)
-			return err
-		}
 		topic := string(firstData.TaxiFrontNode)
 		m.sendingChan <- mttypes.Message{
 			Type:    mttypes.TYPE_UPDATE_SECOND_INDEX,
 			Topic:   topic,
-			Content: sendback_second_index_json,
+			Content: sendback_second_index,
 		}
 	} else {
 		//第一次上传数据，初始化
@@ -178,24 +142,25 @@ func (m *MiotTracingServImpl) handleFirstData(message mttypes.Message) (err erro
 			SequenceNum: "1",
 			NodeID:      mttypes.NODE_ID,
 		}
-		third_index_json, err := json.Marshal(third_index)
-		if err != nil {
-			iotlog.Errorf("json marshal error: %v", err)
-			return err
-		}
+
 		topic := node_id
 		m.sendingChan <- mttypes.Message{
 			Type:    mttypes.TYPE_UPDATE_THIRD_INDEX,
 			Topic:   topic,
-			Content: third_index_json,
+			Content: third_index,
 		}
 	}
 	return
 }
 
 func (m *MiotTracingServImpl) handleUploadMetaData(message mttypes.Message) (err error) {
+	contentBytes, err := json.Marshal(message.Content)
+	if err != nil {
+		fmt.Println("Error marshalling content back to JSON:", err)
+		return
+	}
 	var firstData mttypes.FirstData
-	if err = json.Unmarshal(message.Content, &firstData); err != nil {
+	if err = json.Unmarshal(contentBytes, &firstData); err != nil {
 		iotlog.Errorf("json unmarshal error: %v", err)
 		return
 	}
@@ -208,8 +173,13 @@ func (m *MiotTracingServImpl) handleUploadMetaData(message mttypes.Message) (err
 }
 
 func (m *MiotTracingServImpl) handleData(message mttypes.Message) (err error) {
+	contentBytes, err := json.Marshal(message.Content)
+	if err != nil {
+		fmt.Println("Error marshalling content back to JSON:", err)
+		return
+	}
 	var taxiData mttypes.TaxiData
-	if err = json.Unmarshal(message.Content, &taxiData); err != nil {
+	if err = json.Unmarshal(contentBytes, &taxiData); err != nil {
 		iotlog.Errorf("json unmarshal error: %v", err)
 		return
 	}
@@ -233,8 +203,13 @@ func (m *MiotTracingServImpl) handleData(message mttypes.Message) (err error) {
 
 // 收到这个说明现在这个节点就是index的最后一个节点了
 func (m *MiotTracingServImpl) handleUploadThirdIndex(message mttypes.Message) (err error) {
+	contentBytes, err := json.Marshal(message.Content)
+	if err != nil {
+		fmt.Println("Error marshalling content back to JSON:", err)
+		return
+	}
 	var taxi_info mttypes.TaxiInfo
-	if err = json.Unmarshal(message.Content, &taxi_info); err != nil {
+	if err = json.Unmarshal(contentBytes, &taxi_info); err != nil {
 		iotlog.Errorf("json unmarshal error: %v", err)
 		return
 	}
@@ -246,25 +221,30 @@ func (m *MiotTracingServImpl) handleUploadThirdIndex(message mttypes.Message) (e
 		iotlog.Errorf("getForwardThirdIndexMap error: %v", err)
 		return
 	}
-	for node_id, third_index := range forward_map {
-		third_index_json, err := json.Marshal(third_index)
-		if err != nil {
-			iotlog.Errorf("json marshal error: %v", err)
-			return err
-		}
+	for node_id, third_indexs := range forward_map {
 		topic := node_id
-		m.sendingChan <- mttypes.Message{
-			Type:    mttypes.TYPE_UPDATE_THIRD_INDEX,
-			Topic:   topic,
-			Content: third_index_json,
+		for _, third_index := range third_indexs {
+
+			third_index.ID = taxi_info.TaxiID //补充id
+
+			m.sendingChan <- mttypes.Message{
+				Type:    mttypes.TYPE_UPDATE_THIRD_INDEX,
+				Topic:   topic,
+				Content: third_index,
+			}
 		}
 	}
 	return
 }
 
 func (m *MiotTracingServImpl) handleUpdateSecondIndex(message mttypes.Message) (err error) {
+	contentBytes, err := json.Marshal(message.Content)
+	if err != nil {
+		fmt.Println("Error marshalling content back to JSON:", err)
+		return
+	}
 	var second_index mttypes.SecondIndex
-	if err = json.Unmarshal(message.Content, &second_index); err != nil {
+	if err = json.Unmarshal(contentBytes, &second_index); err != nil {
 		iotlog.Errorf("json unmarshal error: %v", err)
 		return
 	}
@@ -277,8 +257,13 @@ func (m *MiotTracingServImpl) handleUpdateSecondIndex(message mttypes.Message) (
 }
 
 func (m *MiotTracingServImpl) handleUpdateThirdIndex(message mttypes.Message) (err error) {
+	contentBytes, err := json.Marshal(message.Content)
+	if err != nil {
+		fmt.Println("Error marshalling content back to JSON:", err)
+		return
+	}
 	var third_index mttypes.ThirdIndex
-	if err = json.Unmarshal(message.Content, &third_index); err != nil {
+	if err = json.Unmarshal(contentBytes, &third_index); err != nil {
 		iotlog.Errorf("json unmarshal error: %v", err)
 		return
 	}
@@ -311,8 +296,8 @@ func decreaseSegment(segment string) string {
 	return strconv.Itoa(segment_int)
 }
 
-// seq:id
-func getForwardThirdIndexMap(indexes []string) (forward_map map[string]mttypes.ThirdIndex, err error) {
+// seq:id //在获取3级索引的时候，需要把自己的3级索引转发给需要的节点
+func getForwardThirdIndexMap(indexes []string) (forward_map map[string][]mttypes.ThirdIndex, err error) {
 	//取出本地的thirdindex
 	local_index := len(indexes) - 1
 	seq_and_id := strings.Split(indexes[local_index], ":")
@@ -332,7 +317,7 @@ func getForwardThirdIndexMap(indexes []string) (forward_map map[string]mttypes.T
 		iotlog.Errorf("getNeedForwardIndexList failed, err: %v", err)
 		return nil, err
 	}
-	forward_map = make(map[string]mttypes.ThirdIndex)
+	forward_map = make(map[string][]mttypes.ThirdIndex)
 	for _, index := range slice_indexes {
 		seq_forward_node_id := strings.Split(indexes[index], ":")
 		if len(seq_forward_node_id) != 2 {
@@ -341,10 +326,10 @@ func getForwardThirdIndexMap(indexes []string) (forward_map map[string]mttypes.T
 		}
 		forward_node_id := seq_forward_node_id[1]
 		//把自己的thirdindex转发给需要的节点
-		forward_map[forward_node_id] = mttypes.ThirdIndex{
+		forward_map[forward_node_id] = append(forward_map[forward_node_id], mttypes.ThirdIndex{
 			SequenceNum: sequence_num,
 			NodeID:      node_id,
-		}
+		})
 	}
 	return
 }
@@ -354,12 +339,13 @@ func getNeedForwardIndexList(seq int) (slice_indexes []int, err error) {
 	if seq <= 0 {
 		return nil, fmt.Errorf("invalid sequence number: %v", seq)
 	}
-	n := 0.0
+	n, origin_index := 0.0, seq
 	slice_indexes = []int{seq - 1}
 	for seq%2 == 0 {
 		n++
 		seq >>= 1 // 使用位右移代替除以2
-		slice_indexes = append(slice_indexes, seq-int(math.Pow(2, n)))
+		need_forward_node_id := origin_index - int(math.Pow(2, n))
+		slice_indexes = append(slice_indexes, need_forward_node_id)
 	}
 	return
 }
