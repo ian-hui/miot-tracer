@@ -44,7 +44,10 @@ var (
 	TYPE_UPLOAD_THIRD_INDEX_HEAD = "MIOT_UPLOAD_THIRD_INDEX_HEAD" //存储头节点
 	TYPE_UPDATE_SECOND_INDEX     = "MIOT_UPDATE_SECOND_INDEX"     //更新二级索引(补全endtime和nextnode)
 	TYPE_UPDATE_THIRD_INDEX      = "MIOT_UPDATE_THIRD_INDEX"      //更新三级索引(接收转发并存储)
+	TYPE_BUILD_QUERY             = "MIOT_BUILD_QUERY"             //构建查询
+	TYPE_SEARCH_THIRD_INDEX      = "MIOT_SEARCH_THIRD_INDEX"      //查询三级索引
 	TYPE_QUERY_TAXI_DATA         = "MIOT_QUERY_TAXI_DATA"         //查询出租车数据
+	TYPE_SEND_BACK_RESULT        = "MIOT_SEND_BACK_RESULT"        //返回查询结果
 )
 
 // metadata
@@ -82,13 +85,14 @@ type InfluxConf struct {
 }
 
 type QueryStru struct {
-	Tii       ThirdIndexInfo //查询条件
-	QueryNode string         `json:"querynode"` //记录发起查询的节点，用于回传信息
-	RequestID string         `json:"requestid"` //记录用户终端id，用于回传信息
-	StartTime string         `json:"starttime"`
-	EndTime   string         `json:"endtime"`
-	Segment   string         `json:"segment"`
-	ID        string         `json:"id"`
+	Tii         ThirdIndexInfo //查询条件
+	TraverseCfg TraverseConfig //遍历有关的参数
+	QueryNode   string         `json:"querynode"` //记录发起查询的节点，用于回传信息
+	RequestID   string         `json:"requestid"` //记录用户终端id，用于回传信息
+	StartTime   string         `json:"starttime"`
+	EndTime     string         `json:"endtime"`
+	Segment     string         `json:"segment"`
+	ID          string         `json:"id"`
 }
 
 type ThirdIndexInfo struct {
@@ -96,9 +100,29 @@ type ThirdIndexInfo struct {
 	Skip_Ts       string `json:"skip_ts"`
 }
 
+type TraverseConfig struct {
+	Start_segment    string   `json:"start_segment"`    //开始节点
+	Traversed        []string `json:"traversed"`        //遍历过的节点
+	Previous_segment string   `json:"previous_segment"` //上一个节点
+}
+
 type SecondIndexType string
 
 type Result struct {
-	Request_id string      `json:"request_id"`
-	Result     interface{} `json:"result"`
+	Request_id      string                   `json:"request_id"`
+	Start_segment   string                   `json:"start_segment"`
+	Current_segment string                   `json:"current_segment"`
+	End_segment     string                   `json:"end_segment"`
+	Result          []map[string]interface{} `json:"result"`
 }
+
+// type SegmentType struct {
+// 	Seg_type string `json:"seg_type"`
+// 	Seg_id   string `json:"seg_id"`
+// }
+
+// const (
+// 	SEGMENT_START   = "start"
+// 	SEGMENT_CURRENT = "current"
+// 	SEGMENT_END     = "end"
+// )

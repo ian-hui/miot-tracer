@@ -111,7 +111,7 @@ func (i *SecondIndexProcessor) UpdateSecondIndex(mtdt *mttypes.SecondIndex) erro
 }
 
 // 获取符合条件的secondindex
-func (i *SecondIndexProcessor) getSecondIndex(id string, startTs_from_query string, endTs_from_query string) (second_indexes []mttypes.SecondIndex, err error) {
+func (i *SecondIndexProcessor) GetSecondIndex(id string, startTs_from_query string, endTs_from_query string) (second_indexes []mttypes.SecondIndex, err error) {
 	RedisListKey := fmt.Sprintf("%s%s:%s:%s", mttypes.Node_prefix, mttypes.NODE_ID, mttypes.SecondIndex_prefix, id)
 	//从左到右查询
 	indexes, err := i.c.LRange(RedisListKey, 0, -1).Result()

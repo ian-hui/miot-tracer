@@ -1,10 +1,12 @@
 package indexprocessor
 
 import (
+	"errors"
 	mttypes "miot_tracing_go/mtTypes"
 	secondindexprocessor "miot_tracing_go/pkg/miotTraceServ/indexProcessor/SecondIndexProcessor"
 	thirdindexprocessor "miot_tracing_go/pkg/miotTraceServ/indexProcessor/ThirdIndexProcessor"
 	"strconv"
+	"strings"
 
 	"github.com/go-redis/redis"
 )
@@ -38,4 +40,16 @@ func (ip *IndexProcessor) InsertHeadMeta(f_data mttypes.FirstData) error {
 	meta := f_data.Timestamp + ":" + strconv.Itoa(mttypes.TS_SKIP)
 	sc := ip.c.Set(f_data.TaxiID, meta, 0)
 	return sc.Err()
+}
+
+func (ip *IndexProcessor) QueryHeadMeta(taxi_id string) (ts string, ts_skip string, err error) {
+	meta, err := ip.c.Get(taxi_id).Result()
+	if err != nil {
+		return "", "", err
+	}
+	metaArr := strings.Split(meta, ":")
+	if len(metaArr) != 2 {
+		return "", "", errors.New("metaArr length is not 2")
+	}
+	return metaArr[0], metaArr[1], nil
 }

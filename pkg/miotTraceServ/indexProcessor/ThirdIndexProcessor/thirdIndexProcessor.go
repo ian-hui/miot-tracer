@@ -38,7 +38,6 @@ func (t *ThirdIndexProcessor) CreateThirdIndex(index *mttypes.ThirdIndex) error 
 
 func (t *ThirdIndexProcessor) QueryThirdIndex(query *mttypes.QueryStru) (node_id string, err error) {
 	redisKeyName := fmt.Sprintf("%s%s:%s:%s", mttypes.Node_prefix, mttypes.NODE_ID, mttypes.ThirdIndex_prefix, query.ID)
-	fmt.Println(redisKeyName)
 	//从分数高开始遍历
 	ssc := t.c.ZRevRange(redisKeyName, 0, -1)
 	if ssc.Err() != nil {

@@ -28,9 +28,8 @@ func TestInsertInfluxdb(t *testing.T) {
 
 func TestQueryInfluxdb(t *testing.T) {
 	dp := NewDataProcessor()
-	// defer dp.flushData()
 	// d := &mttypes.TaxiData{
-	// 	TaxiID:    "5",
+	// 	TaxiID:    "1",
 	// 	Timestamp: "1213537727",
 	// 	Longitude: "3",
 	// 	Latitude:  "4",
@@ -39,25 +38,26 @@ func TestQueryInfluxdb(t *testing.T) {
 	// 		Segment: "2",
 	// 	},
 	// }
-	// err := dp.insertTaxiData(d)
+	// err := dp.InsertTaxiData(d)
 	// if err != nil {
 	// 	t.Error(err)
 	// }
+	// dp.FlushData()
+
+	// time := time.Now().UTC().Unix()
+	// time_string := strconv.FormatInt(time, 10)
 	query := &mttypes.QueryStru{
 		StartTime: "0",
-		EndTime:   "2215037729",
-		ID:        "5",
+		EndTime:   "1213537790",
+		ID:        "1",
+		Segment:   "2",
 	}
 	result, err := dp.QueryTaxiData(query)
 	if err != nil {
 		t.Error(err)
 	}
 	fmt.Println("result:", result)
-	for result.Next() {
-		t.Log("record")
-		t.Log(result.Record().Field())
-		t.Log(result.Record().Values())
-	}
+
 }
 
 func TestExt2Time(t *testing.T) {

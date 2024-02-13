@@ -18,20 +18,6 @@ func (d *dataGatewayImpl) RECEIVERHandler(client mqtt.Client, msg mqtt.Message) 
 	d.processChan <- message
 }
 
-func (d *dataGatewayImpl) asyncSendMsg() {
-	for msg := range d.sendingChan {
-		b_msg, err := json.Marshal(msg)
-		if err != nil {
-			iotlog.Errorln("marshal failed :", err)
-			continue
-		}
-		err = d.mqtt.mqttPublish(msg.Topic, b_msg)
-		if err != nil {
-			iotlog.Errorln("publish failed :", err)
-		}
-	}
-}
-
 func (d *dataGatewayImpl) searchHandler(c *gin.Context) {
 	taxiID := c.Param("taxi_id")
 	startTime := c.Param("start_time")

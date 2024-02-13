@@ -129,7 +129,7 @@ func TestQuery2Index(t *testing.T) {
 	}
 	queryEnd_string := strconv.FormatInt(queryEnd.UTC().Unix(), 10)
 
-	second_indexes, err2 := s.getSecondIndex("1", queryStart_string, queryEnd_string)
+	second_indexes, err2 := s.GetSecondIndex("1", queryStart_string, queryEnd_string)
 	if err2 != nil {
 		fmt.Println("Error parsing date:", err2)
 		return

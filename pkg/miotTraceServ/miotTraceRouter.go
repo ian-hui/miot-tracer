@@ -35,6 +35,16 @@ func (m *MiotTracingServImpl) handleMessage(message mttypes.Message) error {
 		if err != nil {
 			iotlog.Errorf("handleUploadMetaData error: %v", err)
 		}
+	case mttypes.TYPE_BUILD_QUERY:
+		err := m.handleBuildQuery(message)
+		if err != nil {
+			iotlog.Errorf("handleQuery error: %v", err)
+		}
+	case mttypes.TYPE_SEARCH_THIRD_INDEX:
+		err := m.handleSearchThirdIndex(message)
+		if err != nil {
+			iotlog.Errorf("handleSearchThirdIndex error: %v", err)
+		}
 	default:
 		iotlog.Errorf("unknown message type: %v", message.Type)
 	}

@@ -9,7 +9,6 @@ import (
 	"time"
 
 	influxdb2 "github.com/influxdata/influxdb-client-go/v2"
-	"github.com/influxdata/influxdb-client-go/v2/api"
 )
 
 var (
@@ -50,7 +49,7 @@ func (dp *DataProcessor) FlushData() {
 	writeAPI.Flush()
 }
 
-func (dp *DataProcessor) QueryTaxiData(query *mttypes.QueryStru) (result *api.QueryTableResult, err error) {
+func (dp *DataProcessor) QueryTaxiData(query *mttypes.QueryStru) (res []map[string]interface{}, err error) {
 	queryAPI := client.QueryAPI(mttypes.InfluxConfig.Org)
 	// 准备参数
 	bucketName := mttypes.BucketNode_prefix + mttypes.NODE_ID
@@ -65,7 +64,7 @@ func (dp *DataProcessor) QueryTaxiData(query *mttypes.QueryStru) (result *api.Qu
 		return
 	}
 	// 查询 |> group(columns: ["segment"])
-	result, err = queryAPI.Query(context.Background(),
+	result, err := queryAPI.Query(context.Background(),
 		`from(bucket:"`+bucketName+`")
 			|> range(start:`+StartTime+`,stop:`+EndTime+`) 
 			|> filter(fn: (r) => r._measurement == "taxi" )
@@ -76,7 +75,9 @@ func (dp *DataProcessor) QueryTaxiData(query *mttypes.QueryStru) (result *api.Qu
 		iotlog.Errorln("query failed, err:", err)
 		return
 	}
-
+	for result.Next() {
+		res = append(res, result.Record().Values())
+	}
 	return
 }
 
