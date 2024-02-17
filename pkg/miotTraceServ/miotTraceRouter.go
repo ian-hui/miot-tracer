@@ -45,6 +45,11 @@ func (m *MiotTracingServImpl) handleMessage(message mttypes.Message) error {
 		if err != nil {
 			iotlog.Errorf("handleSearchThirdIndex error: %v", err)
 		}
+	case mttypes.TYPE_QUERY_TAXI_DATA:
+		err := m.handleQueryData(message)
+		if err != nil {
+			iotlog.Errorf("handleQueryData error: %v", err)
+		}
 	default:
 		iotlog.Errorf("unknown message type: %v", message.Type)
 	}

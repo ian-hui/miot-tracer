@@ -85,21 +85,6 @@ func (m *MiotTracingServImpl) handleFirstData(message mttypes.Message) (err erro
 		return
 	}
 
-	//存储数据
-	err = m.dp.InsertTaxiData(&mttypes.TaxiData{
-		TaxiID:    firstData.TaxiID,
-		Timestamp: firstData.Timestamp,
-		Longitude: firstData.Longitude,
-		Latitude:  firstData.Latitude,
-		Occupancy: firstData.Occupancy,
-		TaxiDataLabel: mttypes.TaxiDataLabel{
-			Segment: firstData.Segment,
-		},
-	})
-	if err != nil {
-		iotlog.Errorf("InsertTaxiData error: %v", err)
-		return
-	}
 	//是第一次在本节点上传数据，但是不是第一次上传数据
 	if firstData.Segment != "1" {
 
