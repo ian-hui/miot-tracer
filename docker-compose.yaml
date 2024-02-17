@@ -15,7 +15,7 @@ services:
   #     DOCKER_INFLUXDB_INIT_USERNAME: "root" #创建管理员用户
   #     DOCKER_INFLUXDB_INIT_PASSWORD: "a123456a" #创建管理员密码，太简单会报错
   #     DOCKER_INFLUXDB_INIT_ORG: "miot-tracer" #组织名称
-  #     DOCKER_INFLUXDB_INIT_BUCKET: "node1"
+  #     DOCKER_INFLUXDB_INIT_BUCKET: "node1,node2,node3,node4,node5,node6,node7,node8,node9,node10,node11,node12,node13,node14,node15,node16" #数据库名称
   #   volumes:
   #     - "./influxdb/data:/var/lib/influxdb2"
   #     - "./influxdb/config:/etc/influxdb2"
@@ -65,8 +65,8 @@ services:
     networks:
       - web-network
     # depends_on:
-      # - docker-influxdb
-      # - miot-tracer-redis
+    #   - docker-influxdb
+    #   - miot-tracer-redis
 
   miot-tracer-node_2:
     image: debian:bookworm-slim
@@ -85,8 +85,8 @@ services:
     networks:
       - web-network
     # depends_on:
-      # - docker-influxdb
-      # - miot-tracer-redis
+    #   - docker-influxdb
+    #   - miot-tracer-redis
 
   miot-tracer-node_3:
     image: debian:bookworm-slim
@@ -105,8 +105,8 @@ services:
     networks:
       - web-network
     # depends_on:
-      # - docker-influxdb
-      # - miot-tracer-redis
+    #   - docker-influxdb
+    #   - miot-tracer-redis
     
 
   miot-tracer-node_4:
@@ -126,8 +126,8 @@ services:
     networks:
       - web-network
     # depends_on:
-      # - docker-influxdb
-      # - miot-tracer-redis
+    #   - docker-influxdb
+    #   - miot-tracer-redis
     
   miot-tracer-node_5:
     image: debian:bookworm-slim
@@ -146,8 +146,8 @@ services:
     networks:
       - web-network
     # depends_on:
-      # - docker-influxdb
-      # - miot-tracer-redis
+    #   - docker-influxdb
+    #   - miot-tracer-redis
 
   miot-tracer-node_6:
     image: debian:bookworm-slim
@@ -166,8 +166,8 @@ services:
     networks:
       - web-network
     # depends_on:
-      # - docker-influxdb
-      # - miot-tracer-redis
+    #   - docker-influxdb
+    #   - miot-tracer-redis
     
   miot-tracer-node_7:
     image: debian:bookworm-slim
@@ -186,8 +186,8 @@ services:
     networks:
       - web-network
     # depends_on:
-      # - docker-influxdb
-      # - miot-tracer-redis
+    #   - docker-influxdb
+    #   - miot-tracer-redis
     
   miot-tracer-node_8:
     image: debian:bookworm-slim
@@ -206,8 +206,8 @@ services:
     networks:
       - web-network
     # depends_on:
-      # - docker-influxdb
-      # - miot-tracer-redis
+    #   - docker-influxdb
+    #   - miot-tracer-redis
 
   miot-tracer-node_9:
     image: debian:bookworm-slim
@@ -226,8 +226,8 @@ services:
     networks:
       - web-network
     # depends_on:
-      # - docker-influxdb
-      # - miot-tracer-redis
+    #   - docker-influxdb
+    #   - miot-tracer-redis
 
   miot-tracer-node_10:
     image: debian:bookworm-slim
@@ -246,8 +246,8 @@ services:
     networks:
       - web-network
     # depends_on:
-      # - docker-influxdb
-      # - miot-tracer-redis
+    #   - docker-influxdb
+    #   - miot-tracer-redis
 
   miot-tracer-node_11:
     image: debian:bookworm-slim
@@ -266,8 +266,8 @@ services:
     networks:
       - web-network
     # depends_on:
-      # - docker-influxdb
-      # - miot-tracer-redis
+    #   - docker-influxdb
+    #   - miot-tracer-redis
   
   miot-tracer-node_12:
     image: debian:bookworm-slim
@@ -286,8 +286,8 @@ services:
     networks:
       - web-network
     # depends_on:
-      # - docker-influxdb
-      # - miot-tracer-redis
+    #   - docker-influxdb
+    #   - miot-tracer-redis
     
   miot-tracer-node_13:  
     image: debian:bookworm-slim
@@ -306,8 +306,8 @@ services:
     networks:
       - web-network
     # depends_on:
-      # - docker-influxdb
-      # - miot-tracer-redis
+    #   - docker-influxdb
+    #   - miot-tracer-redis
   
   miot-tracer-node_14:  
     image: debian:bookworm-slim
@@ -326,8 +326,8 @@ services:
     networks:
       - web-network
     # depends_on:
-      # - docker-influxdb
-      # - miot-tracer-redis
+    #   - docker-influxdb
+    #   - miot-tracer-redis
   
   miot-tracer-node_15:
     image: debian:bookworm-slim
@@ -346,8 +346,8 @@ services:
     networks:
       - web-network
     # depends_on:
-      # - docker-influxdb
-      # - miot-tracer-redis
+    #   - docker-influxdb
+    #   - miot-tracer-redis
     
   miot-tracer-node_16:
     image: debian:bookworm-slim
@@ -366,5 +366,5 @@ services:
     networks:
       - web-network
     # depends_on:
-      # - docker-influxdb
-      # - miot-tracer-redis
+    #   - docker-influxdb
+    #   - miot-tracer-redis

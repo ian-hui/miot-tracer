@@ -3,3 +3,4 @@ influxdb
 redis-data/redis
 pkg/dataGateway/gatewayConfig.go
 logFile
+miot_tracing_go

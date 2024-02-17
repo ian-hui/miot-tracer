@@ -9,7 +9,7 @@ import (
 var connectHandler mqtt.OnConnectHandler = func(client mqtt.Client) {
 	iotlog.Infoln("Connected")
 }
-
+     
 var connectLostHandler mqtt.ConnectionLostHandler = func(client mqtt.Client, err error) {
 	iotlog.Errorf("Connect lost: %v", err)
 }

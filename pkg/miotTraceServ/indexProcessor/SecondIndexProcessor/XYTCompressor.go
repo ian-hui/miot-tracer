@@ -2,10 +2,8 @@ package secondindexprocessor
 
 import (
 	"errors"
-	"fmt"
 	mttypes "miot_tracing_go/mtTypes"
 	"strconv"
-	"time"
 )
 
 //------------------------------------------------------------------
@@ -99,7 +97,7 @@ func decompressXYT(combined int64, max_elementcode_len int) (unix_ts string) {
 	binnum_start_ts := mttypes.REF_TIME.UTC().Unix() + binNum*mttypes.BIN_LEN
 	binnum_end_ts := binnum_start_ts + mttypes.BIN_LEN
 
-	fmt.Println("s", time.Unix(binnum_start_ts, 0).UTC(), time.Unix(binnum_end_ts, 0).UTC())
+	// fmt.Println("s", time.Unix(binnum_start_ts, 0).UTC(), time.Unix(binnum_end_ts, 0).UTC())
 	//取出elementCode
 	elementCode := combined & int64(1<<max_elementcode_len-1)
 	//用二分的方法找到startTS的位置
@@ -198,11 +196,11 @@ func genElementCode(binNum int64, startTS string, max_elementcode_len int) int64
 			binnum_start_ts = mid
 			mid = (mid + binnum_end_ts) / 2
 		}
-		fmt.Println(time.Unix(mid, 0).UTC())
-		fmt.Println(s)
+		// fmt.Println(time.Unix(mid, 0).UTC())
+		// fmt.Println(s)
 
 	}
-	fmt.Println(len(s))
+	// fmt.Println(len(s))
 	//把s转成二进制
 	bin, err := strconv.ParseInt(s, 2, 64)
 	if err != nil {

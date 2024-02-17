@@ -5,7 +5,6 @@ import (
 	mttypes "miot_tracing_go/mtTypes"
 	"miot_tracing_go/pkg/logger"
 	"strconv"
-	"time"
 
 	"github.com/go-redis/redis"
 )
@@ -25,6 +24,10 @@ func NewSecondIndexProcessor(c *redis.Client) *SecondIndexProcessor {
 // index生成样子（3byte）：XYT(16bit) + segment(8位)
 func (i *SecondIndexProcessor) CreateSecondIndex(mtdt *mttypes.SecondIndex) (err error) {
 	RedisListKey := fmt.Sprintf("%s%s:%s:%s", mttypes.Node_prefix, mttypes.NODE_ID, mttypes.SecondIndex_prefix, mtdt.ID)
+
+	// 看看最后一条index是不是完整的
+	//把最后一个元素pop出来
+	//todo
 
 	// 先把数据序列化
 	XYT_compressed, err := compressXYT(mtdt.StartTs, 11)
@@ -144,9 +147,9 @@ func (i *SecondIndexProcessor) GetSecondIndex(id string, startTs_from_query stri
 			iotlog.Errorln("strconv.Atoi failed, err:", err)
 			return nil, err
 		}
-		fmt.Println(time.Unix(start_ts_64, 0).UTC())
-		end_ts_64, _ := strconv.ParseInt(end_ts, 10, 64)
-		fmt.Println(time.Unix(end_ts_64, 0).UTC())
+		// fmt.Println(time.Unix(start_ts_64, 0).UTC())
+		// end_ts_64, _ := strconv.ParseInt(end_ts, 10, 64)
+		// fmt.Println(time.Unix(end_ts_64, 0).UTC())
 
 		startTs_from_query_64, err := strconv.ParseInt(startTs_from_query, 10, 64)
 		if err != nil {

@@ -34,7 +34,7 @@ func TestXYT(t *testing.T) {
 		fmt.Println("Error parsing date:", err)
 		return
 	}
-	fmt.Println(combined)
+	// fmt.Println(combined)
 	decompress_s := decompressXYT(combined, 10)
 	fmt.Println(decompress_s)
 	//转回时间戳
