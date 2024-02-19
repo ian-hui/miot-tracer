@@ -65,7 +65,7 @@ func (m *MiotTracingServImpl) worker(workerID int) {
 func (m *MiotTracingServImpl) handleFirstData(message mttypes.Message) (err error) {
 	contentBytes, err := json.Marshal(message.Content)
 	if err != nil {
-		fmt.Println("Error marshalling content back to JSON:", err)
+		iotlog.Errorln("Error marshalling content back to JSON:", err)
 		return
 	}
 	var firstData mttypes.FirstData
@@ -143,7 +143,7 @@ func (m *MiotTracingServImpl) handleFirstData(message mttypes.Message) (err erro
 func (m *MiotTracingServImpl) handleUploadMetaData(message mttypes.Message) (err error) {
 	contentBytes, err := json.Marshal(message.Content)
 	if err != nil {
-		fmt.Println("Error marshalling content back to JSON:", err)
+		iotlog.Errorln("Error marshalling content back to JSON:", err)
 		return
 	}
 	var firstData mttypes.FirstData
@@ -162,7 +162,7 @@ func (m *MiotTracingServImpl) handleUploadMetaData(message mttypes.Message) (err
 func (m *MiotTracingServImpl) handleData(message mttypes.Message) (err error) {
 	contentBytes, err := json.Marshal(message.Content)
 	if err != nil {
-		fmt.Println("Error marshalling content back to JSON:", err)
+		iotlog.Errorln("Error marshalling content back to JSON:", err)
 		return
 	}
 	var taxiData mttypes.TaxiData
@@ -192,7 +192,7 @@ func (m *MiotTracingServImpl) handleData(message mttypes.Message) (err error) {
 func (m *MiotTracingServImpl) handleUploadThirdIndex(message mttypes.Message) (err error) {
 	contentBytes, err := json.Marshal(message.Content)
 	if err != nil {
-		fmt.Println("Error marshalling content back to JSON:", err)
+		iotlog.Errorln("Error marshalling content back to JSON:", err)
 		return
 	}
 	var taxi_info mttypes.TaxiInfo
@@ -227,7 +227,7 @@ func (m *MiotTracingServImpl) handleUploadThirdIndex(message mttypes.Message) (e
 func (m *MiotTracingServImpl) handleUpdateSecondIndex(message mttypes.Message) (err error) {
 	contentBytes, err := json.Marshal(message.Content)
 	if err != nil {
-		fmt.Println("Error marshalling content back to JSON:", err)
+		iotlog.Errorln("Error marshalling content back to JSON:", err)
 		return
 	}
 	var second_index mttypes.SecondIndex
@@ -246,7 +246,7 @@ func (m *MiotTracingServImpl) handleUpdateSecondIndex(message mttypes.Message) (
 func (m *MiotTracingServImpl) handleUpdateThirdIndex(message mttypes.Message) (err error) {
 	contentBytes, err := json.Marshal(message.Content)
 	if err != nil {
-		fmt.Println("Error marshalling content back to JSON:", err)
+		iotlog.Errorln("Error marshalling content back to JSON:", err)
 		return
 	}
 	var third_index mttypes.ThirdIndex
@@ -266,7 +266,7 @@ func (m *MiotTracingServImpl) handleUpdateThirdIndex(message mttypes.Message) (e
 func (m *MiotTracingServImpl) handleBuildQuery(message mttypes.Message) (err error) {
 	contentBytes, err := json.Marshal(message.Content)
 	if err != nil {
-		fmt.Println("Error marshalling content back to JSON:", err)
+		iotlog.Errorln("Error marshalling content back to JSON:", err)
 		return
 	}
 	var query mttypes.QueryStru
@@ -323,7 +323,7 @@ func (m *MiotTracingServImpl) handleBuildQuery(message mttypes.Message) (err err
 func (m *MiotTracingServImpl) handleSearchThirdIndex(message mttypes.Message) (err error) {
 	contentBytes, err := json.Marshal(message.Content)
 	if err != nil {
-		fmt.Println("Error marshalling content back to JSON:", err)
+		iotlog.Errorln("Error marshalling content back to JSON:", err)
 		return
 	}
 	var query mttypes.QueryStru
@@ -358,7 +358,7 @@ func (m *MiotTracingServImpl) handleSearchThirdIndex(message mttypes.Message) (e
 func (m *MiotTracingServImpl) handleQueryData(message mttypes.Message) (err error) {
 	contentBytes, err := json.Marshal(message.Content)
 	if err != nil {
-		fmt.Println("Error marshalling content back to JSON:", err)
+		iotlog.Errorln("Error marshalling content back to JSON:", err)
 		return
 	}
 	var query mttypes.QueryStru

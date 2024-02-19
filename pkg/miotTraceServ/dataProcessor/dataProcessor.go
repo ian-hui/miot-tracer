@@ -85,6 +85,40 @@ func (dp *DataProcessor) ClientClose() {
 	client.Close()
 }
 
+func (dp *DataProcessor) DeleteAllDataInBucket() {
+	for i := 1; i <= 16; i++ {
+		bucketName := mttypes.BucketNode_prefix + strconv.Itoa(i)
+		deleteAPI := client.DeleteAPI()
+
+		org, err := client.OrganizationsAPI().FindOrganizationByName(context.Background(), "miot-tracer")
+		if err != nil {
+			fmt.Println(err)
+		}
+
+		bucket, err := client.BucketsAPI().FindBucketByName(context.Background(), bucketName)
+		if err != nil {
+			fmt.Println(err)
+		}
+
+		start, err := time.Parse(time.RFC3339, "2004-03-01T00:00:00Z")
+		if err != nil {
+			fmt.Println(err)
+		}
+
+		stop, err := time.Parse(time.RFC3339, "2009-11-14T00:00:00Z")
+		if err != nil {
+			fmt.Println(err)
+		}
+
+		err = deleteAPI.Delete(context.Background(), org, bucket, start, stop, "")
+		if err != nil {
+			fmt.Println(err)
+		}
+
+	}
+
+}
+
 // --------------------helper functions--------------------
 func CSVts2timestamp(ts string) (time.Time, error) {
 	timestamp, err := strconv.ParseInt(ts, 10, 64)

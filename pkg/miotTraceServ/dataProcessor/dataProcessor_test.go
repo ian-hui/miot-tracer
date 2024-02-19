@@ -73,3 +73,8 @@ func TestExt2Time(t *testing.T) {
 	fmt.Println("Unix时间戳转换为时间:", extTime)
 	fmt.Println("时间戳转换为时间:", wallTime)
 }
+
+func TestDeleteAllDataInBucket(t *testing.T) {
+	dp := NewDataProcessor()
+	dp.DeleteAllDataInBucket()
+}

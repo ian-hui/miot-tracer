@@ -151,3 +151,43 @@ func TestSplitAndCombineXYT(t *testing.T) {
 	fmt.Println(time.Unix(s2_64, 0).UTC(), time.Unix(e2_64, 0).UTC())
 	fmt.Println(s2, e2)
 }
+
+func TestSplitXYTAndSeg(t *testing.T) {
+	segment, XYT := splitSegmentAndXYT(566816)
+	fmt.Println(segment, XYT)
+	s2 := decompressXYT(2214, 11)
+	fmt.Println(s2)
+}
+
+func TestXYT4DiffErr(t *testing.T) {
+	//unix转换成时间戳
+	t2 := time.Unix(1211075830, 0).UTC().Format(layout)
+	fmt.Println(t2)
+	//转二进制
+	s2 := strconv.FormatInt(166, 2)
+	s3 := strconv.FormatInt(2214&(1<<11-1), 2)
+	fmt.Println(s2, s3)
+	s := mttypes.SecondIndex{
+		ID:      "1",
+		StartTs: "1211075830",
+		Segment: "32",
+	}
+
+	i, err := compressXYT(s.StartTs, 11)
+	if err != nil {
+		fmt.Println("Error parsing date:", err)
+		return
+	}
+	fmt.Println(i)
+
+}
+
+func TestEasy(t *testing.T) {
+	a := "10100110"
+	fmt.Println(11 - len(a))
+	length := 11 - len(a)
+	for i := 0; i < length; i++ {
+		a = "0" + a
+	}
+	fmt.Println(a)
+}

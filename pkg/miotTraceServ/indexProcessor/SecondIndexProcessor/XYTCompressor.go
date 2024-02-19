@@ -2,8 +2,10 @@ package secondindexprocessor
 
 import (
 	"errors"
+	"fmt"
 	mttypes "miot_tracing_go/mtTypes"
 	"strconv"
+	"time"
 )
 
 //------------------------------------------------------------------
@@ -25,7 +27,7 @@ func VariableLengthCompress(ts string, start_ts string) (int64, error) {
 	// 计算差值
 	diff := ts_int64 - first_index_start_ts_int64
 	if diff <= 0 {
-		iotlog.Errorln("diff <= 0")
+		iotlog.Errorln("diff <= 0, ts_int64:", ts_int64, "first_index_start_ts_int64:", first_index_start_ts_int64, "diff:", diff)
 		return 0, errors.New("diff <= 0")
 	}
 	if diff < int64(mttypes.VARIABLE_CHECK_LEN) {
@@ -99,11 +101,12 @@ func decompressXYT(combined int64, max_elementcode_len int) (unix_ts string) {
 
 	// fmt.Println("s", time.Unix(binnum_start_ts, 0).UTC(), time.Unix(binnum_end_ts, 0).UTC())
 	//取出elementCode
-	elementCode := combined & int64(1<<max_elementcode_len-1)
+	elementCode := combined & int64((1<<max_elementcode_len)-1)
 	//用二分的方法找到startTS的位置
 	s := strconv.FormatInt(elementCode, 2)
-	//补0
-	for i := 0; i < max_elementcode_len-len(s); i++ {
+	//补0(先保存下来 不然遍历会改变s的长度从而影响遍历次数)
+	length := max_elementcode_len - len(s)
+	for i := 0; i < length; i++ {
 		s = "0" + s
 	}
 	mid := (binnum_start_ts + binnum_end_ts) / 2
@@ -116,7 +119,7 @@ func decompressXYT(combined int64, max_elementcode_len int) (unix_ts string) {
 			mid = (mid + binnum_end_ts) / 2
 		}
 	}
-	//如果最后一位是0，就取start_ts，否则取end_ts
+	//如果最后一位是0，就取start_ts，否则取mid
 	if s[len(s)-1] == '0' {
 		unix_ts = strconv.FormatInt(binnum_start_ts, 10)
 	} else {
@@ -196,8 +199,8 @@ func genElementCode(binNum int64, startTS string, max_elementcode_len int) int64
 			binnum_start_ts = mid
 			mid = (mid + binnum_end_ts) / 2
 		}
-		// fmt.Println(time.Unix(mid, 0).UTC())
-		// fmt.Println(s)
+		fmt.Println(time.Unix(mid, 0).UTC())
+		fmt.Println(s)
 
 	}
 	// fmt.Println(len(s))

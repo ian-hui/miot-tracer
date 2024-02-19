@@ -5,6 +5,7 @@ import (
 	mttypes "miot_tracing_go/mtTypes"
 	"miot_tracing_go/pkg/logger"
 	"strconv"
+	"time"
 
 	"github.com/go-redis/redis"
 )
@@ -57,60 +58,72 @@ func (i *SecondIndexProcessor) CreateSecondIndex(mtdt *mttypes.SecondIndex) (err
 func (i *SecondIndexProcessor) UpdateSecondIndex(mtdt *mttypes.SecondIndex) error {
 	RedisListKey := fmt.Sprintf("%s%s:%s:%s", mttypes.Node_prefix, mttypes.NODE_ID, mttypes.SecondIndex_prefix, mtdt.ID)
 
-	//判断是不是第一条index
+	//如果一条都没有，报错
 	RL_len := i.c.LLen(RedisListKey)
 	if RL_len.Err() != nil {
 		iotlog.Errorln("LLen failed, err:", RL_len.Err())
 		return RL_len.Err()
 	}
-
-	//把最后一个元素pop出来
-	sc := i.c.RPop(RedisListKey)
-	if sc.Err() != nil {
-		iotlog.Errorln("RPop failed, err:", sc.Err())
-		return sc.Err()
+	if RL_len.Val() == 0 {
+		iotlog.Errorln("RL_len is 0")
+		return fmt.Errorf("RL_len is 0")
 	}
 
-	buf, err := sc.Int64()
+	//从右到左查询
+	indexes, err := i.c.LRange(RedisListKey, 0, -1).Result()
 	if err != nil {
-		iotlog.Errorln("Bytes failed, err:", err)
+		iotlog.Errorln("Error retrieving list elements:", err)
 		return err
 	}
+	for retry := 0; retry < mttypes.RETRY; retry++ {
 
-	//拆分出segment和XYT
-	segment, XYT := splitSegmentAndXYT(buf)
+		for index, v := range indexes {
+			int64_v, err := strconv.ParseInt(v, 10, 64)
+			if err != nil {
+				iotlog.Errorln("strconv.Atoi failed, err:", err)
+				return err
+			}
+			//拆分出segment和XYT
+			segment, XYT := splitSegmentAndXYT(int64_v)
 
-	//如果segment不相等，报错
-	segment_form_message, err := strconv.ParseInt(mtdt.Segment, 10, 64)
-	if err != nil {
-		iotlog.Errorln("strconv.Atoi failed, err:", err)
-		return err
+			//如果segment不相等，报错
+			segment_form_message, err := strconv.ParseInt(mtdt.Segment, 10, 64)
+			if err != nil {
+				iotlog.Errorln("strconv.Atoi failed, err:", err)
+				return err
+			}
+			//找到segment_form_message对应的index
+			if segment != segment_form_message {
+				continue
+			}
+			start_ts := decompressXYT(XYT, 11)
+
+			//variableIndex
+			XYT_endtime_compressed, err := VariableLengthCompress(mtdt.EndTs, start_ts)
+			if err != nil {
+				iotlog.Errorln("VariableLengthCompress failed, err:", err)
+				return err
+			}
+
+			//nextnode
+			nextnode, err := strconv.ParseInt(mtdt.NextNode, 10, 64)
+			if err != nil {
+				iotlog.Errorln("strconv.Atoi failed, err:", err)
+				return err
+			}
+			//合并
+			combined_whole_index := combineAll(combineStartXYTAndEndXYT(XYT, XYT_endtime_compressed), nextnode, segment)
+			//把合并后的元素放回对应的位置
+			sc := i.c.LSet(RedisListKey, int64(index), combined_whole_index)
+			if sc.Err() != nil {
+				iotlog.Errorln("LSet failed, err:", sc.Err())
+				return sc.Err()
+			}
+			return nil
+		}
+		time.Sleep(1 * time.Second)
 	}
-	if segment != segment_form_message {
-		iotlog.Errorln("segment not equal")
-		return fmt.Errorf("segment not equal")
-	}
-
-	start_ts := decompressXYT(XYT, 11)
-
-	//variableIndex
-	XYT_endtime_compressed, err := VariableLengthCompress(mtdt.EndTs, start_ts)
-	if err != nil {
-		iotlog.Errorln("VariableLengthCompress failed, err:", err)
-		return err
-	}
-
-	//nextnode
-	nextnode, err := strconv.ParseInt(mtdt.NextNode, 10, 64)
-	if err != nil {
-		iotlog.Errorln("strconv.Atoi failed, err:", err)
-		return err
-	}
-	//合并
-	combined_whole_index := combineAll(combineStartXYTAndEndXYT(XYT, XYT_endtime_compressed), nextnode, segment)
-	//把合并后的元素push回去
-	i.c.RPush(RedisListKey, combined_whole_index)
-	return nil
+	return fmt.Errorf("segment not found segment_form_message:%s", mtdt.Segment)
 }
 
 // 获取符合条件的secondindex

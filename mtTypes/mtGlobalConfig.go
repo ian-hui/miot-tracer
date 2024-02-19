@@ -5,9 +5,8 @@ import (
 	"time"
 )
 
+// docker配置
 var NODE_ID = os.Getenv("NODE_ID")
-
-// var NODE_ID string = "1"
 
 // redis配置
 var (
@@ -17,10 +16,6 @@ var (
 		DB:      "0",
 		Timeout: "10",
 	}
-	SecondIndex_prefix = "Second_index_"
-	ThirdIndex_prefix  = "Third_index_"
-	Node_prefix        = "node_"
-	TAXI_ID_PREFIX     = "taxi_"
 )
 
 // influxdb配置
@@ -31,11 +26,55 @@ var (
 		Bucket: os.Getenv("INFLUXDB_BUCKET"),
 		Org:    "miot-tracer",
 	}
+)
+
+// log 配置
+var LogAddr = "./logFile/miot_tracer_log.json"
+
+//-------------------以下是测试配置-------------------
+
+// // test配置
+// var NODE_ID = "1"
+
+// // redis配置
+// var (
+// 	RedisConfig = RedisConf{
+// 		Addr:    "localhost:6379",
+// 		Pwd:     "reins5401",
+// 		DB:      "0",
+// 		Timeout: "10",
+// 	}
+// )
+
+// // influxdb配置
+// var (
+// 	InfluxConfig = InfluxConf{
+// 		Url:    "http://localhost:8086",
+// 		Token:  "J_xeoyLkPQFHBilXk4ELHjV85A7fFtIJvlo3GTjmKnF3QPZU63H7N0FH5_x7JBMPy3MRvVwoeoW0rnReDyLuPg==",
+// 		Bucket: "node1",
+// 		Org:    "miot-tracer",
+// 	}
+// )
+
+// // log 配置
+// var LogAddr = "/home/ianhui/code/miot-tracer/logFile/miot_tracer_log.json"
+
+//-------------------以下是通用配置-------------------
+
+var (
+	//redis key前缀
+	SecondIndex_prefix = "Second_index_"
+	ThirdIndex_prefix  = "Third_index_"
+	Node_prefix        = "node_"
+	TAXI_ID_PREFIX     = "taxi_"
+	//influxdb key前缀
 	BucketNode_prefix = "node"
+	//最大重试次数
+	RETRY = 3
 )
 
 var (
-	REF_TIME = time.Date(2008, 1, 1, 0, 0, 0, 0, time.UTC)
+	REF_TIME = time.Date(2008, 5, 17, 0, 0, 0, 0, time.UTC) // 我看sfs数据是从5月18号开始 ，那么这里定为5月17号
 )
 
 const (
@@ -54,10 +93,10 @@ const (
 const (
 	THIRD_INDEX_NODE_ID_LEN      = 8
 	THIRD_INDEX_SEQUENCE_NUM_LEN = 16
-	TS_SKIP                      = 60 * 30 // 30 min
+	TS_SKIP                      = 60 * 60 // 1h
 )
 
 // 一致性哈希配置
 const (
-	NODE_TOTAL_NUM = 3
+	NODE_TOTAL_NUM = 16
 )

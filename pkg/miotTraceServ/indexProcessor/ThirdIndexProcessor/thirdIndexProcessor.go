@@ -23,7 +23,6 @@ func NewThirdIndexProcessor(c *redis.Client) *ThirdIndexProcessor {
 
 func (t *ThirdIndexProcessor) CreateThirdIndex(index *mttypes.ThirdIndex) error {
 	redisKeyName := fmt.Sprintf("%s%s:%s:%s", mttypes.Node_prefix, mttypes.NODE_ID, mttypes.ThirdIndex_prefix, index.ID)
-	fmt.Println(redisKeyName)
 	compressed, err := compressThirdIndex(index.SequenceNum, index.NodeID)
 	if err != nil {
 		iotlog.Errorln("compressThirdIndex failed, err:", err)
