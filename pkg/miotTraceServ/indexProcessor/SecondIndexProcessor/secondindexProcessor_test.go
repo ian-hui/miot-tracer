@@ -153,7 +153,7 @@ func TestSplitAndCombineXYT(t *testing.T) {
 }
 
 func TestSplitXYTAndSeg(t *testing.T) {
-	segment, XYT := splitSegmentAndXYT(566816)
+	segment, XYT := splitSegmentAndXYT(3178718)
 	fmt.Println(segment, XYT)
 	s2 := decompressXYT(2214, 11)
 	fmt.Println(s2)

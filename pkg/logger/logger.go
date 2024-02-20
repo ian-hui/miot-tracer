@@ -17,7 +17,7 @@ func init() {
 	config := zap.NewProductionEncoderConfig()
 	config.EncodeTime = zapcore.ISO8601TimeEncoder
 	fileEncoder := zapcore.NewJSONEncoder(config)
-	defaultLogLevel := zapcore.DebugLevel // 设置 loglevel，debug表示所有日志都输出，info表示只输出info以上的日志
+	defaultLogLevel := zapcore.ErrorLevel // 设置 loglevel，debug表示所有日志都输出，info表示只输出info以上的日志
 
 	logFile, err := os.OpenFile(mttypes.LogAddr, os.O_WRONLY|os.O_CREATE|os.O_APPEND, 06666)
 	if err != nil {
