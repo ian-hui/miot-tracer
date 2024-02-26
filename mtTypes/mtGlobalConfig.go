@@ -82,7 +82,7 @@ const (
 	ELEMENTCODE_LEN = 0x7ff
 
 	TS_LEN             = 16
-	SEGMENT_LEN        = 8
+	SEGMENT_LEN        = 16
 	NEXT_NODE_LEN      = 8
 	VARIABLE_CHECK_LEN = 15
 
