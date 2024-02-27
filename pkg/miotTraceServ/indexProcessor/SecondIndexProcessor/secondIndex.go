@@ -26,10 +26,6 @@ func NewSecondIndexProcessor(c *redis.Client) *SecondIndexProcessor {
 func (i *SecondIndexProcessor) CreateSecondIndex(mtdt *mttypes.SecondIndex) (err error) {
 	RedisListKey := fmt.Sprintf("%s%s:%s:%s", mttypes.Node_prefix, mttypes.NODE_ID, mttypes.SecondIndex_prefix, mtdt.ID)
 
-	// 看看最后一条index是不是完整的
-	//把最后一个元素pop出来
-	//todo
-
 	// 先把数据序列化
 	XYT_compressed, err := compressXYT(mtdt.StartTs, 11)
 	if err != nil {
@@ -49,12 +45,11 @@ func (i *SecondIndexProcessor) CreateSecondIndex(mtdt *mttypes.SecondIndex) (err
 		iotlog.Errorln("RPush failed, err:", redis_list.Err())
 		return redis_list.Err()
 	}
+	iotlog.Infoln("CreateSecondIndex success, segment:", mtdt.Segment, "start_ts:", mtdt.StartTs)
 	return nil
 }
 
-// 有个问题是 如果移动终端到达一个新节点后立刻又掉头回到原本节点 那么节点的元数据的最后一个
-// 补充成完整的secondindex
-// mtdt需要有：ID, EndTs, Segment, NextNode
+// todo 增加segment在list中的index
 func (i *SecondIndexProcessor) UpdateSecondIndex(mtdt *mttypes.SecondIndex) error {
 	RedisListKey := fmt.Sprintf("%s%s:%s:%s", mttypes.Node_prefix, mttypes.NODE_ID, mttypes.SecondIndex_prefix, mtdt.ID)
 
@@ -160,6 +155,11 @@ func (i *SecondIndexProcessor) GetSecondIndex(id string, startTs_from_query stri
 			iotlog.Errorln("strconv.Atoi failed, err:", err)
 			return nil, err
 		}
+		end_ts_64, err := strconv.ParseInt(end_ts, 10, 64)
+		if err != nil {
+			iotlog.Errorln("strconv.Atoi failed, err:", err)
+			return nil, err
+		}
 		// fmt.Println(time.Unix(start_ts_64, 0).UTC())
 		// end_ts_64, _ := strconv.ParseInt(end_ts, 10, 64)
 		// fmt.Println(time.Unix(end_ts_64, 0).UTC())
@@ -174,7 +174,8 @@ func (i *SecondIndexProcessor) GetSecondIndex(id string, startTs_from_query stri
 			iotlog.Errorln("strconv.Atoi failed, err:", err)
 			return nil, err
 		}
-		if start_ts_64 >= startTs_from_query_64 && start_ts_64 <= endTs_from_query_64 {
+		//只要不是startts和endts都在范围外的都加入
+		if start_ts_64 <= endTs_from_query_64 && end_ts_64 >= startTs_from_query_64 {
 			second_indexes = append(second_indexes, mttypes.SecondIndex{
 				ID:       id,
 				StartTs:  start_ts,
@@ -188,6 +189,72 @@ func (i *SecondIndexProcessor) GetSecondIndex(id string, startTs_from_query stri
 
 	}
 	return
+}
+
+func (i *SecondIndexProcessor) FindNearestSegment(id string, startTs_from_query string) (find bool, close_or_finded_time mttypes.SecondIndex, err error) {
+	RedisListKey := fmt.Sprintf("%s%s:%s:%s", mttypes.Node_prefix, mttypes.NODE_ID, mttypes.SecondIndex_prefix, id)
+	close_or_finded_time, find = mttypes.SecondIndex{}, false
+
+	//从左到右查询
+	indexes, err := i.c.LRange(RedisListKey, 0, -1).Result()
+	if err != nil {
+		iotlog.Errorln("Error retrieving list elements:", err)
+		return
+	}
+	startTs_from_query_64, err := strconv.ParseInt(startTs_from_query, 10, 64)
+	if err != nil {
+		iotlog.Errorln("strconv.Atoi failed, err:", err)
+		return
+	}
+	//遍历每个元素
+	for _, v := range indexes {
+		//把v转成int64
+		value_64, err := strconv.ParseInt(v, 10, 64)
+		if err != nil {
+			iotlog.Errorln("strconv.Atoi failed, err:", err)
+			return false, mttypes.SecondIndex{}, err
+		}
+		var start_ts, end_ts, segment, next_node = "", "", "", ""
+		//解压
+		start_ts, end_ts, segment, next_node, err = decompressSecondIndex(value_64)
+		if err != nil {
+			iotlog.Errorln("decompressSecondIndex failed, err:", err)
+			return false, mttypes.SecondIndex{}, err
+		}
+		if check := checkSecondIndex(start_ts, end_ts, segment, next_node); !check {
+			iotlog.Errorln("secondindex checked failed")
+			return false, mttypes.SecondIndex{}, fmt.Errorf("secondindex checked failed")
+		}
+		start_ts_64, err := strconv.ParseInt(start_ts, 10, 64)
+		if err != nil {
+			iotlog.Errorln("strconv.Atoi failed, err:", err)
+			return false, mttypes.SecondIndex{}, err
+		}
+		end_ts_64, err := strconv.ParseInt(end_ts, 10, 64)
+		if err != nil {
+			iotlog.Errorln("strconv.Atoi failed, err:", err)
+			return false, mttypes.SecondIndex{}, err
+		}
+		if start_ts_64 <= startTs_from_query_64 && end_ts_64 >= startTs_from_query_64 {
+			find = true
+			close_or_finded_time = mttypes.SecondIndex{
+				ID:       id,
+				StartTs:  start_ts,
+				EndTs:    end_ts,
+				Segment:  segment,
+				NextNode: next_node,
+			}
+		} else {
+			close_or_finded_time = mttypes.SecondIndex{
+				ID:       id,
+				StartTs:  start_ts,
+				EndTs:    end_ts,
+				Segment:  segment,
+				NextNode: next_node,
+			}
+		}
+	}
+	return find, close_or_finded_time, nil
 }
 
 //-----------------helper functions-----------------

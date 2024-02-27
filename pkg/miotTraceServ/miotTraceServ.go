@@ -278,13 +278,15 @@ func (m *MiotTracingServImpl) handleBuildQuery(message mttypes.Message) (err err
 	if message.Topic == "" {
 		//补全信息 计算出头节点
 		topic := head_node_id
+		query.QueryNode = mttypes.NODE_ID
 		m.sendingChan <- mttypes.Message{
-			Type:    mttypes.TYPE_QUERY_TAXI_DATA,
+			Type:    mttypes.TYPE_BUILD_QUERY,
 			Topic:   topic,
 			Content: query,
 		}
 		return
 	} else {
+		//头节点操作
 		//补全tti
 		ts, ts_skip, err := m.ip.QueryHeadMeta(query.ID)
 		if err != nil {
@@ -300,10 +302,10 @@ func (m *MiotTracingServImpl) handleBuildQuery(message mttypes.Message) (err err
 			return err
 		}
 
-		if node_id == "" {
+		if node_id == "" || node_id == mttypes.NODE_ID {
 			//开始执行查询
 			m.processChan <- mttypes.Message{
-				Type:    mttypes.TYPE_QUERY_TAXI_DATA,
+				Type:    mttypes.TYPE_FIND_STARTER,
 				Topic:   mttypes.NODE_ID,
 				Content: query,
 			}
@@ -336,10 +338,11 @@ func (m *MiotTracingServImpl) handleSearchThirdIndex(message mttypes.Message) (e
 		iotlog.Errorf("QueryThirdIndex error: %v", err)
 		return err
 	}
-	if node_id == "" {
+	if node_id == "" || node_id == mttypes.NODE_ID {
 		//开始执行查询
+		iotlog.Infof("start query data", query)
 		m.processChan <- mttypes.Message{
-			Type:    mttypes.TYPE_QUERY_TAXI_DATA,
+			Type:    mttypes.TYPE_FIND_STARTER,
 			Topic:   mttypes.NODE_ID,
 			Content: query,
 		}
@@ -368,21 +371,30 @@ func (m *MiotTracingServImpl) handleQueryData(message mttypes.Message) (err erro
 	}
 	if_traversed := checkAlreadyTraversed(mttypes.NODE_ID, query.TraverseCfg.Traversed)
 	if if_traversed {
+		iotlog.Info("already traversed")
 		return
 	}
 	second_indexes, err := m.ip.SIP.GetSecondIndex(query.ID, query.StartTime, query.EndTime)
 	if second_indexes == nil {
 		//没有数据
-		m.resultChan <- mttypes.Result{
-			Request_id:  query.RequestID,
-			End_segment: query.TraverseCfg.Previous_segment,
+
+		m.sendingChan <- mttypes.Message{
+			Type:  mttypes.TYPE_SEND_BACK_RESULT,
+			Topic: query.QueryNode,
+			Content: mttypes.Result{
+				Query_node:  query.QueryNode,
+				Request_id:  query.RequestID,
+				End_segment: query.TraverseCfg.Previous_segment,
+			},
 		}
+
 		return
 	}
 	//有2index
 	for _, second_index := range second_indexes {
 		var res mttypes.Result
 		res.Request_id = query.RequestID
+		res.Query_node = query.QueryNode
 		data_res, err := m.dp.QueryTaxiData(&mttypes.QueryStru{
 			ID:        query.ID,
 			Segment:   second_index.Segment,
@@ -412,14 +424,50 @@ func (m *MiotTracingServImpl) handleQueryData(message mttypes.Message) (err erro
 		query.TraverseCfg.Traversed = append(query.TraverseCfg.Traversed, mttypes.NODE_ID)
 		//如果没有到最后一个节点，继续查询
 		if res.End_segment == "" {
-			m.processChan <- mttypes.Message{
+			m.sendingChan <- mttypes.Message{
 				Type:    mttypes.TYPE_QUERY_TAXI_DATA,
 				Topic:   second_index.NextNode,
 				Content: query,
 			}
 		}
 		//返回结果
-		m.resultChan <- res
+		m.sendingChan <- mttypes.Message{
+			Type:    mttypes.TYPE_SEND_BACK_RESULT,
+			Topic:   query.QueryNode,
+			Content: res,
+		}
+	}
+	return
+}
+
+func (m *MiotTracingServImpl) handleFindStarterOfQuery(message mttypes.Message) (err error) {
+	contentBytes, err := json.Marshal(message.Content)
+	if err != nil {
+		iotlog.Errorln("Error marshalling content back to JSON:", err)
+		return
+	}
+	var query mttypes.QueryStru
+	if err = json.Unmarshal(contentBytes, &query); err != nil {
+		iotlog.Errorf("json unmarshal error: %v", err)
+		return
+	}
+	find, si, err := m.ip.SIP.FindNearestSegment(query.ID, query.StartTime)
+	if err != nil {
+		iotlog.Errorf("FindNearestSegment error: %v", err)
+		return
+	}
+	if find {
+		m.processChan <- mttypes.Message{
+			Type:    mttypes.TYPE_QUERY_TAXI_DATA,
+			Topic:   mttypes.NODE_ID,
+			Content: query,
+		}
+	} else {
+		m.sendingChan <- mttypes.Message{
+			Type:    mttypes.TYPE_FIND_STARTER,
+			Topic:   si.NextNode,
+			Content: query,
+		}
 	}
 	return
 }

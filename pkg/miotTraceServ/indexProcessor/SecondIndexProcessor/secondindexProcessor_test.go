@@ -153,7 +153,7 @@ func TestSplitAndCombineXYT(t *testing.T) {
 }
 
 func TestSplitXYTAndSeg(t *testing.T) {
-	segment, XYT := splitSegmentAndXYT(3178718)
+	segment, XYT := splitSegmentAndXYT(117768210)
 	fmt.Println(segment, XYT)
 	s2 := decompressXYT(2214, 11)
 	fmt.Println(s2)
@@ -161,7 +161,7 @@ func TestSplitXYTAndSeg(t *testing.T) {
 
 func TestXYT4DiffErr(t *testing.T) {
 	//unix转换成时间戳
-	t2 := time.Unix(1211075830, 0).UTC().Format(layout)
+	t2 := time.Unix(1211042763, 0).UTC().Format(layout)
 	fmt.Println(t2)
 	//转二进制
 	s2 := strconv.FormatInt(166, 2)
@@ -190,4 +190,10 @@ func TestEasy(t *testing.T) {
 		a = "0" + a
 	}
 	fmt.Println(a)
+}
+
+func TestSplitALL(t *testing.T) {
+	combined := int64(2581655181068839)
+	unprocessed_next_node, unprocessed_segment, unprocessed_XYT := splitAll(combined)
+	fmt.Println(unprocessed_next_node, unprocessed_segment, unprocessed_XYT)
 }

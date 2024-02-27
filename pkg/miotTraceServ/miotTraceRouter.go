@@ -50,6 +50,11 @@ func (m *MiotTracingServImpl) handleMessage(message mttypes.Message) error {
 		if err != nil {
 			iotlog.Errorf("handleQueryData error: %v", err)
 		}
+	case mttypes.TYPE_FIND_STARTER:
+		err := m.handleFindStarterOfQuery(message)
+		if err != nil {
+			iotlog.Errorf("handleFindStarter error: %v", err)
+		}
 	default:
 		iotlog.Errorf("unknown message type: %v", message.Type)
 	}

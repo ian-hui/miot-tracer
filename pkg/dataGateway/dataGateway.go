@@ -38,6 +38,7 @@ func (d dataGatewayImpl) Start() {
 	// mqtt
 	d.mqtt.mqttSubscribe(RECEIVER, d.RECEIVERHandler)
 	go d.asyncSendMsg() //异步发送消息
+	// go d.asyncResDeliver() //异步发送res
 	// http
 	d.http.gin.GET("/search/:taxi_id/:start_time/:end_time", d.searchHandler)
 	d.http.Start()
@@ -57,9 +58,16 @@ func (d *dataGatewayImpl) asyncSendMsg() {
 	}
 }
 
-func (d *dataGatewayImpl) asyncRequestIdDeliver() {
-	for result := range d.resultChan {
-		request_id := result.Request_id
-		d.reuqest_map[request_id] <- result
-	}
-}
+//接收到信息后放入一个map中，等待合并
+// func (d *dataGatewayImpl) asyncResReceiver() {
+// 	for result := range d.resultChan {
+// 		request_id := result.Request_id
+// 		d.reuqest_map[request_id] <- result
+// 	}
+// }
+
+// func (d *dataGatewayImpl) asyncResDeliver() {
+// 	for result := range d.resultChan {
+
+// 	}
+// }

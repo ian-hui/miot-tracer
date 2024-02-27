@@ -46,6 +46,7 @@ var (
 	TYPE_UPDATE_THIRD_INDEX      = "MIOT_UPDATE_THIRD_INDEX"      //更新三级索引(接收转发并存储)
 	TYPE_BUILD_QUERY             = "MIOT_BUILD_QUERY"             //构建查询
 	TYPE_SEARCH_THIRD_INDEX      = "MIOT_SEARCH_THIRD_INDEX"      //查询三级索引
+	TYPE_FIND_STARTER            = "MIOT_FIND_STARTER"            //查询起始节点
 	TYPE_QUERY_TAXI_DATA         = "MIOT_QUERY_TAXI_DATA"         //查询出租车数据
 	TYPE_SEND_BACK_RESULT        = "MIOT_SEND_BACK_RESULT"        //返回查询结果
 )
@@ -89,8 +90,8 @@ type QueryStru struct {
 	TraverseCfg TraverseConfig //遍历有关的参数
 	QueryNode   string         `json:"querynode"` //记录发起查询的节点，用于回传信息
 	RequestID   string         `json:"requestid"` //记录用户终端id，用于回传信息
-	StartTime   string         `json:"starttime"`
-	EndTime     string         `json:"endtime"`
+	StartTime   string         `json:"startts"`
+	EndTime     string         `json:"endts"`
 	Segment     string         `json:"segment"`
 	ID          string         `json:"id"`
 }
@@ -109,6 +110,7 @@ type TraverseConfig struct {
 type SecondIndexType string
 
 type Result struct {
+	Query_node      string                   `json:"query_node"`
 	Request_id      string                   `json:"request_id"`
 	Start_segment   string                   `json:"start_segment"`
 	Current_segment string                   `json:"current_segment"`
