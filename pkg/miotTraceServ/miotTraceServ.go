@@ -3,7 +3,6 @@ package miottraceserv
 import (
 	"encoding/json"
 	"fmt"
-	"math"
 	mttypes "miot_tracing_go/mtTypes"
 	consistenthash "miot_tracing_go/pkg/consistentHash"
 	"miot_tracing_go/pkg/logger"
@@ -126,7 +125,7 @@ func (m *MiotTracingServImpl) handleFirstData(message mttypes.Message) (err erro
 		//更新第三级索引
 		third_index := mttypes.ThirdIndex{
 			ID:          firstData.TaxiID,
-			SequenceNum: "1",
+			SequenceNum: "0",
 			NodeID:      mttypes.NODE_ID,
 		}
 
@@ -188,7 +187,6 @@ func (m *MiotTracingServImpl) handleData(message mttypes.Message) (err error) {
 	return
 }
 
-// 收到这个说明现在这个节点就是index的最后一个节点了
 func (m *MiotTracingServImpl) handleUploadThirdIndex(message mttypes.Message) (err error) {
 	contentBytes, err := json.Marshal(message.Content)
 	if err != nil {
@@ -200,10 +198,7 @@ func (m *MiotTracingServImpl) handleUploadThirdIndex(message mttypes.Message) (e
 		iotlog.Errorf("json unmarshal error: %v", err)
 		return
 	}
-	//taxi记录的索引是没有头节点的，所以要加上头节点
-	the_header_index := m.consistentHash.GetNode(mttypes.TAXI_ID_PREFIX + ":" + taxi_info.TaxiID)
-	taxi_info.Index = append([]string{"0" + ":" + the_header_index}, taxi_info.Index...)
-	forward_map, err := getForwardThirdIndexMap(taxi_info.Index)
+	forward_map, err := getForwardThirdIndexMap(taxi_info.Index, taxi_info.Cur_index, mttypes.NODE_ID)
 	if err != nil {
 		iotlog.Errorf("getForwardThirdIndexMap error: %v", err)
 		return
@@ -296,7 +291,7 @@ func (m *MiotTracingServImpl) handleBuildQuery(message mttypes.Message) (err err
 		query.Tii.Taxi_Start_Ts = ts
 		query.Tii.Skip_Ts = ts_skip
 		//查询第三级索引
-		node_id, err := m.ip.TIP.QueryThirdIndex(&query)
+		node_id, seq, err := m.ip.TIP.QueryThirdIndex(&query)
 		if err != nil {
 			iotlog.Errorf("QueryThirdIndex error: %v", err)
 			return err
@@ -311,6 +306,7 @@ func (m *MiotTracingServImpl) handleBuildQuery(message mttypes.Message) (err err
 			}
 		} else {
 			//转发
+			query.Tii.Max_seq = seq
 			topic := node_id
 			m.sendingChan <- mttypes.Message{
 				Type:    mttypes.TYPE_SEARCH_THIRD_INDEX,
@@ -333,14 +329,13 @@ func (m *MiotTracingServImpl) handleSearchThirdIndex(message mttypes.Message) (e
 		iotlog.Errorf("json unmarshal error: %v", err)
 		return
 	}
-	node_id, err := m.ip.TIP.QueryThirdIndex(&query)
+	node_id, seq, err := m.ip.TIP.QueryThirdIndex(&query)
 	if err != nil {
 		iotlog.Errorf("QueryThirdIndex error: %v", err)
 		return err
 	}
-	if node_id == "" || node_id == mttypes.NODE_ID {
+	if node_id == "" || node_id == mttypes.NODE_ID || seq < query.Tii.Max_seq {
 		//开始执行查询
-		iotlog.Infof("start query data", query)
 		m.processChan <- mttypes.Message{
 			Type:    mttypes.TYPE_FIND_STARTER,
 			Topic:   mttypes.NODE_ID,
@@ -348,6 +343,7 @@ func (m *MiotTracingServImpl) handleSearchThirdIndex(message mttypes.Message) (e
 		}
 	} else {
 		//转发
+		query.Tii.Max_seq = seq
 		topic := node_id
 		m.sendingChan <- mttypes.Message{
 			Type:    mttypes.TYPE_SEARCH_THIRD_INDEX,
@@ -373,11 +369,13 @@ func (m *MiotTracingServImpl) handleQueryData(message mttypes.Message) (err erro
 	if if_traversed {
 		iotlog.Info("already traversed")
 		return
+	} else {
+		query.TraverseCfg.Traversed = append(query.TraverseCfg.Traversed, mttypes.NODE_ID)
 	}
 	second_indexes, err := m.ip.SIP.GetSecondIndex(query.ID, query.StartTime, query.EndTime)
 	if second_indexes == nil {
 		//没有数据
-
+		iotlog.Infoln("no data, ending of query")
 		m.sendingChan <- mttypes.Message{
 			Type:  mttypes.TYPE_SEND_BACK_RESULT,
 			Topic: query.QueryNode,
@@ -399,15 +397,24 @@ func (m *MiotTracingServImpl) handleQueryData(message mttypes.Message) (err erro
 			ID:        query.ID,
 			Segment:   second_index.Segment,
 			StartTime: second_index.StartTs,
-			EndTime:   second_index.EndTs,
+			EndTime:   query.EndTime, //暂时只能是这个 因为如果用second_index.EndTs的话，endts是提前的 所以有些数据会查不到
 		})
 		if err != nil {
 			iotlog.Errorf("QueryTaxiData error: %v", err)
 			return err
 		}
 		if data_res == nil {
-			iotlog.Errorf("QueryTaxiData error: %v", err)
-			return err
+			iotlog.Errorf("QueryTaxiData error: %v", err, "segment:", second_index.Segment, "starttime:", second_index.StartTs, "endtime:", query.EndTime)
+			data_res, err = m.dp.QueryTaxiData(&mttypes.QueryStru{
+				ID:        query.ID,
+				StartTime: query.StartTime,
+				EndTime:   query.EndTime,
+				Segment:   second_index.Segment,
+			})
+			if err != nil {
+				iotlog.Errorf("QueryTaxiData error: %v", err)
+				return err
+			}
 		}
 		//开始数据
 		if query.TraverseCfg.Start_segment == "" || second_index.Segment < query.TraverseCfg.Start_segment {
@@ -457,12 +464,14 @@ func (m *MiotTracingServImpl) handleFindStarterOfQuery(message mttypes.Message) 
 		return
 	}
 	if find {
+		iotlog.Infoln("find!", si.Segment, si.StartTs, si.EndTs)
 		m.processChan <- mttypes.Message{
 			Type:    mttypes.TYPE_QUERY_TAXI_DATA,
 			Topic:   mttypes.NODE_ID,
 			Content: query,
 		}
 	} else {
+		iotlog.Infoln(si.Segment, si.StartTs, si.EndTs)
 		m.sendingChan <- mttypes.Message{
 			Type:    mttypes.TYPE_FIND_STARTER,
 			Topic:   si.NextNode,
@@ -499,32 +508,16 @@ func decreaseSegment(segment string) string {
 }
 
 // seq:id //在获取3级索引的时候，需要把自己的3级索引转发给需要的节点
-func getForwardThirdIndexMap(indexes []string) (forward_map map[string][]mttypes.ThirdIndex, err error) {
-	//取出本地的thirdindex
-	local_index := len(indexes) - 1
-	seq_and_id := strings.Split(indexes[local_index], ":")
-	if len(seq_and_id) != 2 {
-		iotlog.Errorf("invalid index: %v", indexes[local_index])
-		return nil, fmt.Errorf("invalid index: %v", indexes[local_index])
-	}
-	sequence_num, node_id := seq_and_id[0], seq_and_id[1]
-	//获取需要转发的索引
-	sequence_num_int, err := strconv.Atoi(sequence_num)
-	if err != nil {
-		iotlog.Errorf("strconv.Atoi failed, err: %v", err)
-		return nil, err
-	}
-	slice_indexes, err := getNeedForwardIndexList(sequence_num_int)
-	if err != nil {
-		iotlog.Errorf("getNeedForwardIndexList failed, err: %v", err)
-		return nil, err
-	}
+func getForwardThirdIndexMap(indexes []string, cur_index string, node_id string) (forward_map map[string][]mttypes.ThirdIndex, err error) {
+
+	sequence_num, node_id := cur_index, node_id
+
 	forward_map = make(map[string][]mttypes.ThirdIndex)
-	for _, index := range slice_indexes {
-		seq_forward_node_id := strings.Split(indexes[index], ":")
+	for _, index := range indexes {
+		seq_forward_node_id := strings.Split(index, ":")
 		if len(seq_forward_node_id) != 2 {
-			iotlog.Errorf("invalid index: %v", indexes[index])
-			return nil, fmt.Errorf("invalid index: %v", indexes[index])
+			iotlog.Errorf("invalid index: %v", index)
+			return nil, fmt.Errorf("invalid index: %v", index)
 		}
 		forward_node_id := seq_forward_node_id[1]
 		//把自己的thirdindex转发给需要的节点
@@ -532,22 +525,6 @@ func getForwardThirdIndexMap(indexes []string) (forward_map map[string][]mttypes
 			SequenceNum: sequence_num,
 			NodeID:      node_id,
 		})
-	}
-	return
-}
-
-// 获取数组中需要转发的索引
-func getNeedForwardIndexList(seq int) (slice_indexes []int, err error) {
-	if seq <= 0 {
-		return nil, fmt.Errorf("invalid sequence number: %v", seq)
-	}
-	n, origin_index := 0.0, seq
-	slice_indexes = []int{seq - 1}
-	for seq%2 == 0 {
-		n++
-		seq >>= 1 // 使用位右移代替除以2
-		need_forward_node_id := origin_index - int(math.Pow(2, n))
-		slice_indexes = append(slice_indexes, need_forward_node_id)
 	}
 	return
 }

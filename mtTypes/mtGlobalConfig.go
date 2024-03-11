@@ -95,6 +95,7 @@ const (
 	THIRD_INDEX_NODE_ID_LEN      = 8
 	THIRD_INDEX_SEQUENCE_NUM_LEN = 16
 	TS_SKIP                      = 60 * 60 // 1h
+	MAX_LEVEL                    = 64
 )
 
 // 一致性哈希配置

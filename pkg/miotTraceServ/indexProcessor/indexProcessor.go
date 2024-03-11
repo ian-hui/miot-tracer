@@ -39,7 +39,10 @@ func NewIndexProcessor() *IndexProcessor {
 func (ip *IndexProcessor) InsertHeadMeta(f_data mttypes.FirstData) error {
 	meta := f_data.Timestamp + ":" + strconv.Itoa(mttypes.TS_SKIP)
 	sc := ip.c.Set(f_data.TaxiID, meta, 0)
-	return sc.Err()
+	if sc.Err() != nil {
+		return sc.Err()
+	}
+	return nil
 }
 
 func (ip *IndexProcessor) QueryHeadMeta(taxi_id string) (ts string, ts_skip string, err error) {

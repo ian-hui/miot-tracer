@@ -35,52 +35,52 @@ func (t *ThirdIndexProcessor) CreateThirdIndex(index *mttypes.ThirdIndex) error 
 	return nil
 }
 
-func (t *ThirdIndexProcessor) QueryThirdIndex(query *mttypes.QueryStru) (node_id string, err error) {
+func (t *ThirdIndexProcessor) QueryThirdIndex(query *mttypes.QueryStru) (node_id string, seq string, err error) {
 	redisKeyName := fmt.Sprintf("%s%s:%s:%s", mttypes.Node_prefix, mttypes.NODE_ID, mttypes.ThirdIndex_prefix, query.ID)
 	//从分数高开始遍历
 	ssc := t.c.ZRevRange(redisKeyName, 0, -1)
 	if ssc.Err() != nil {
 		iotlog.Errorln("ZRevRange failed, err:", ssc.Err())
-		return "", ssc.Err()
+		return "", "", ssc.Err()
 	}
 	for _, v := range ssc.Val() {
 		//解压
 		combined, err := strconv.ParseInt(v, 10, 64)
 		if err != nil {
 			iotlog.Errorln("strconv.ParseInt failed, err:", err)
-			return "", err
+			return "", "", err
 		}
 		sequence_num, node_id, err := decompressThirdIndex(combined)
 		if err != nil {
 			iotlog.Errorln("decompressThirdIndex failed, err:", err)
-			return "", err
+			return "", "", err
 		}
 		query_skip_ts_64, err := strconv.ParseInt(query.Tii.Skip_Ts, 10, 64)
 		if err != nil {
 			iotlog.Errorln("strconv.ParseInt failed, err:", err)
-			return "", err
+			return "", "", err
 		}
 		query_taxi_start_ts_64, err := strconv.ParseInt(query.Tii.Taxi_Start_Ts, 10, 64)
 		if err != nil {
 			iotlog.Errorln("strconv.ParseInt failed, err:", err)
-			return "", err
+			return "", "", err
 		}
 		sequence_num_64, err := strconv.ParseInt(sequence_num, 10, 64)
 		if err != nil {
 			iotlog.Errorln("strconv.ParseInt failed, err:", err)
-			return "", err
+			return "", "", err
 		}
 		query_startTime_64, err := strconv.ParseInt(query.StartTime, 10, 64)
 		if err != nil {
 			iotlog.Errorln("strconv.ParseInt failed, err:", err)
-			return "", err
+			return "", "", err
 		}
 		//找到第一个满足条件的
 		if sequence_num_64*query_skip_ts_64+query_taxi_start_ts_64 <= query_startTime_64 {
-			return node_id, nil
+			return node_id, sequence_num, nil
 		}
 	}
-	return "", nil
+	return "", "", fmt.Errorf("node_id not found")
 }
 
 // 这个float64是一个组合数，前面是sequence_num，后面是node_id

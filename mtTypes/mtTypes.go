@@ -18,6 +18,7 @@ type TaxiFrontNode string
 type TaxiInfo struct {
 	TaxiID      string   `json:"id"`
 	Index       []string `json:"index"`
+	Cur_index   string   `json:"cur_index"`
 	FronterNode string   `json:"fronter_node"`
 	Segment     string   `json:"segment"`
 	PreTime     string   `json:"pre_time"` // 由于希望taxi半小时发送一次信息，所以🚕自身需要记录一个上次发送信息的时间，一旦超过半小时，就发送一次upload_third_index
@@ -99,6 +100,7 @@ type QueryStru struct {
 type ThirdIndexInfo struct {
 	Taxi_Start_Ts string `json:"taxi_start_ts"`
 	Skip_Ts       string `json:"skip_ts"`
+	Max_seq       string `json:"max_seq"`
 }
 
 type TraverseConfig struct {

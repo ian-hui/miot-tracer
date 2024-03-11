@@ -26,7 +26,7 @@ func VariableLengthCompress(ts string, start_ts string) (int64, error) {
 	}
 	// 计算差值
 	diff := ts_int64 - first_index_start_ts_int64
-	if diff <= 0 {
+	if diff < 0 {
 		iotlog.Errorln("diff <= 0, ts_int64:", ts_int64, "first_index_start_ts_int64:", first_index_start_ts_int64, "diff:", diff)
 		return 0, errors.New("diff <= 0")
 	}

@@ -37,10 +37,10 @@ func TestAddThirdIndex(t *testing.T) {
 	// 	fmt.Println("Error parsing date:", err)
 	// 	return
 	// }
-	node_id, err := s.QueryThirdIndex(&testQuery)
+	node_id, seq, err := s.QueryThirdIndex(&testQuery)
 	if err != nil {
 		fmt.Println("Error parsing date:", err)
 		return
 	}
-	fmt.Println(node_id)
+	fmt.Println(node_id, seq)
 }
